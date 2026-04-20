@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Depo Yönetimi MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <h1>Depo Yönetimi</h1>
+        <button id="logoutBtn" class="ghost hidden" type="button">Çıkış</button>
+      </header>
+
+      <section id="loginScreen" class="card">
+        <h2>Giriş Yap</h2>
+        <form id="loginForm" class="stack">
+          <label>
+            Kullanıcı
+            <input id="username" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            Şifre
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button type="submit">Giriş</button>
+        </form>
+        <p class="hint">Demo: ali / 1234</p>
+      </section>
+
+      <section id="appScreen" class="hidden">
+        <section class="card">
+          <h2>Ürün Ara</h2>
+          <div class="stack">
+            <input id="searchInput" placeholder="SKU veya ürün adı ara" />
+            <div id="searchResults" class="list"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Seçili Ürün</h2>
+          <div id="selectedProductBox" class="muted">Ürün seçilmedi.</div>
+          <form id="updateLocationForm" class="stack hidden">
+            <label>
+              Yeni Lokasyon Kodu
+              <input id="newLocation" placeholder="Örn: B2" required />
+            </label>
+            <label>
+              Not
+              <input id="movementNote" placeholder="Opsiyonel" />
+            </label>
+            <button type="submit">Lokasyonu Güncelle</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Hareket Geçmişi</h2>
+          <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
+          <div id="historyList" class="list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
