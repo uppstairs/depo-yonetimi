@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Depo Yönetimi MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <h1>Depo Yönetimi</h1>
+        <div class="actions">
+          <button id="selectionModeBtn" class="ghost hidden" type="button">Seçim Modu</button>
+          <button id="logoutBtn" class="ghost hidden" type="button">Çıkış</button>
+        </div>
+      </header>
+
+      <section id="loginScreen" class="card">
+        <h2>Giriş Yap</h2>
+        <form id="loginForm" class="stack">
+          <label>
+            Kullanıcı
+            <input id="username" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            Şifre
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button type="submit">Giriş</button>
+        </form>
+        <p class="hint">Demo: ali / 1234</p>
+      </section>
+
+      <section id="appScreen" class="hidden">
+        <div class="tabs">
+          <button id="productsTabBtn" class="tab active" type="button">Ürünler</button>
+          <button id="locationsTabBtn" class="tab" type="button">Lokasyonlar</button>
+        </div>
+
+        <section id="productsView">
+          <section class="card">
+            <h2>Ürün Ara</h2>
+            <div class="stack">
+              <input id="searchInput" placeholder="SKU, barkod veya ürün adı ara" />
+              <div class="row">
+                <button id="scanBarcodeBtn" type="button" class="ghost">📷 Barkod Oku</button>
+              </div>
+              <p id="barcodeStatus" class="hint"></p>
+            </div>
+            <div id="searchResults" class="list"></div>
+          </section>
+
+          <section class="card">
+            <h2>Seçili Ürün</h2>
+            <div id="selectedProductBox" class="muted">Ürün seçilmedi.</div>
+            <form id="updateLocationForm" class="stack hidden">
+              <label>
+                Yeni Lokasyon
+                <select id="newLocation" required></select>
+              </label>
+              <label>
+                Not
+                <input id="movementNote" placeholder="Opsiyonel" />
+              </label>
+              <button type="submit">Lokasyonu Güncelle</button>
+            </form>
+          </section>
+
+          <section id="bulkUpdateCard" class="card hidden">
+            <h2>Toplu Lokasyon Değiştir</h2>
+            <div id="selectedCount" class="muted">0 ürün seçili</div>
+            <form id="bulkUpdateForm" class="stack">
+              <label>
+                Yeni Lokasyon
+                <select id="bulkLocation" required></select>
+              </label>
+              <label>
+                Not
+                <input id="bulkNote" placeholder="Opsiyonel" />
+              </label>
+              <button type="submit">Seçili Ürünleri Güncelle</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>Hareket Geçmişi</h2>
+            <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
+            <div id="historyList" class="list"></div>
+          </section>
+        </section>
+
+        <section id="locationsView" class="hidden">
+          <section class="card">
+            <h2>Lokasyona Göre Ürünler</h2>
+            <input id="locationFilter" placeholder="Lokasyon kodu filtrele (örn: A, B1)" />
+            <div id="locationsList" class="list"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
