@@ -21,19 +21,7 @@ SEED_USERS = [
 
 SEED_LOCATIONS = ["K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12", "K13", "K14", "K15"]
 
-SEED_CARDS = [
-    {
-        "sku": "1001",
-        "brand": "Jack Jones",
-        "product_name": "Beyaz Tişört",
-        "location": "K1",
-        "variants": [
-            {"id": "v1001-xs", "barcode": "123456", "size": "XS", "quantity": 6},
-            {"id": "v1001-s", "barcode": "234561", "size": "S", "quantity": 8},
-            {"id": "v1001-m", "barcode": "345612", "size": "M", "quantity": 5},
-        ],
-    }
-]
+SEED_CARDS = []
 
 
 def get_db():
