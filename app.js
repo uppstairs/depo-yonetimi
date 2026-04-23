@@ -8,64 +8,34 @@ const seedUsers = [
 
 const seedLocations = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2", "D3"];
 
-const seedProducts = [
+const seedCatalog = [
   {
-    id: "p1",
-    stockCode: "STK-ELB-001",
-    sku: "SKU-1001-S",
-    barcode: "869000000001",
-    name: "Basic Tişört",
-    size: "S",
-    brand: "Northline",
-    currentLocation: "A1",
+    sku: "1001",
+    brand: "Jack Jones",
+    productName: "Beyaz Tişört",
+    variants: [
+      { id: "v1001-xs", barcode: "123456", size: "XS", quantity: 6, location: "A1" },
+      { id: "v1001-s", barcode: "234561", size: "S", quantity: 8, location: "A2" },
+      { id: "v1001-m", barcode: "345612", size: "M", quantity: 5, location: "B1" },
+    ],
   },
   {
-    id: "p2",
-    stockCode: "STK-ELB-001",
-    sku: "SKU-1001-M",
-    barcode: "869000000002",
-    name: "Basic Tişört",
-    size: "M",
-    brand: "Northline",
-    currentLocation: "A2",
-  },
-  {
-    id: "p3",
-    stockCode: "STK-ELB-001",
-    sku: "SKU-1001-L",
-    barcode: "869000000003",
-    name: "Basic Tişört",
-    size: "L",
-    brand: "Northline",
-    currentLocation: "B1",
-  },
-  {
-    id: "p4",
-    stockCode: "STK-PNT-014",
-    sku: "SKU-2001-32",
-    barcode: "869000000004",
-    name: "Slim Jean",
-    size: "32",
-    brand: "BlueOak",
-    currentLocation: "C3",
-  },
-  {
-    id: "p5",
-    stockCode: "STK-PNT-014",
-    sku: "SKU-2001-34",
-    barcode: "869000000005",
-    name: "Slim Jean",
-    size: "34",
-    brand: "BlueOak",
-    currentLocation: "D2",
+    sku: "2002",
+    brand: "Mavi",
+    productName: "Slim Fit Jean",
+    variants: [
+      { id: "v2002-30", barcode: "456123", size: "30", quantity: 4, location: "C1" },
+      { id: "v2002-32", barcode: "561234", size: "32", quantity: 3, location: "C2" },
+      { id: "v2002-34", barcode: "612345", size: "34", quantity: 2, location: "C3" },
+    ],
   },
 ];
 
 const state = {
   currentUser: null,
-  selectedProductId: null,
+  expandedVariantId: null,
   selectionMode: false,
-  selectedProductIds: new Set(),
+  selectedVariantIds: new Set(),
 };
 
 function byId(id) {
@@ -82,18 +52,18 @@ function setStorage(key, value) {
 }
 
 function initData() {
-  if (!localStorage.getItem("products")) setStorage("products", seedProducts);
+  if (!localStorage.getItem("catalog")) setStorage("catalog", seedCatalog);
   if (!localStorage.getItem("movements")) setStorage("movements", []);
   if (!localStorage.getItem("users")) setStorage("users", seedUsers);
   if (!localStorage.getItem("locations")) setStorage("locations", seedLocations);
 }
 
-function getProducts() {
-  return getStorage("products", []);
+function getCatalog() {
+  return getStorage("catalog", []);
 }
 
-function setProducts(products) {
-  setStorage("products", products);
+function setCatalog(catalog) {
+  setStorage("catalog", catalog);
 }
 
 function getMovements() {
@@ -118,99 +88,100 @@ function populateLocationSelects() {
   byId("bulkLocation").innerHTML = options;
 }
 
+function matchesQuery(card, query) {
+  if (!query) return true;
+  const cardText = `${card.sku} ${card.brand} ${card.productName}`.toLocaleLowerCase("tr-TR");
+  const variantText = card.variants
+    .map((v) => `${v.barcode} ${v.size} ${v.location} ${v.quantity}`)
+    .join(" ")
+    .toLocaleLowerCase("tr-TR");
+  return `${cardText} ${variantText}`.includes(query);
+}
+
 function renderSearchResults() {
   const query = normalizeText(byId("searchInput").value || "");
-  const products = getProducts();
-
-  const filtered = !query
-    ? products
-    : products.filter((p) =>
-        `${p.name} ${p.sku} ${p.stockCode} ${p.brand} ${p.size} ${p.barcode}`
-          .toLocaleLowerCase("tr-TR")
-          .includes(query)
-      );
-
+  const cards = getCatalog().filter((card) => matchesQuery(card, query));
   const container = byId("searchResults");
-  if (!filtered.length) {
+
+  if (!cards.length) {
     container.innerHTML = `<div class="muted">Eşleşen ürün bulunamadı.</div>`;
     return;
   }
 
-  container.innerHTML = filtered
-    .map((p) => {
-      const checked = state.selectedProductIds.has(p.id) ? "checked" : "";
-      const options = getLocations()
-        .map((loc) => `<option value="${loc}" ${loc === p.currentLocation ? "selected" : ""}>${loc}</option>`)
+  container.innerHTML = cards
+    .map((card) => {
+      const variantsHtml = card.variants
+        .map((variant) => {
+          const checked = state.selectedVariantIds.has(variant.id) ? "checked" : "";
+          const editorOpen = state.expandedVariantId === variant.id;
+          const options = getLocations()
+            .map(
+              (loc) => `<option value="${loc}" ${loc === variant.location ? "selected" : ""}>${loc}</option>`
+            )
+            .join("");
+
+          return `
+            <div class="variant-row">
+              <div class="variant-head">
+                <div>
+                  <span><strong>Barkod:</strong> ${variant.barcode}</span><br>
+                  <span class="muted"><strong>Beden:</strong> ${variant.size} • <strong>Adet:</strong> ${variant.quantity} • <strong>Lokasyon:</strong> ${variant.location}</span>
+                </div>
+                ${state.selectionMode ? `<input type="checkbox" data-variant-checkbox="${variant.id}" ${checked} />` : ""}
+              </div>
+              <button type="button" data-open-editor="${variant.id}" class="ghost">Değiştir</button>
+              ${
+                editorOpen
+                  ? `<form class="stack inline-editor" data-variant-form="${variant.id}">
+                      <label>
+                        Yeni Lokasyon
+                        <select data-variant-location="${variant.id}" required>${options}</select>
+                      </label>
+                      <label>
+                        Not
+                        <input data-variant-note="${variant.id}" placeholder="Opsiyonel" />
+                      </label>
+                      <button type="submit">Varyant Lokasyonunu Güncelle</button>
+                    </form>`
+                  : ""
+              }
+            </div>
+          `;
+        })
         .join("");
-      const inlineEditor =
-        state.selectedProductId === p.id
-          ? `
-            <form class="stack inline-editor" data-inline-form-id="${p.id}">
-              <label>
-                Yeni Lokasyon
-                <select data-inline-location-id="${p.id}" required>${options}</select>
-              </label>
-              <label>
-                Not
-                <input data-inline-note-id="${p.id}" placeholder="Opsiyonel" />
-              </label>
-              <button type="submit">Lokasyonu Güncelle</button>
-            </form>
-          `
-          : "";
+
       return `
         <article class="item">
-          <div class="item-head">
-            <strong>${p.name}</strong>
-            ${state.selectionMode ? `<input type="checkbox" data-checkbox-id="${p.id}" ${checked} />` : ""}
-          </div>
-          <span class="muted">${p.sku} • Barkod: ${p.barcode}</span><br>
-          <span class="muted">Stok Kartı: ${p.stockCode} • Marka: ${p.brand}</span><br>
-          <span class="muted">Beden: ${p.size}</span><br>
-          <span class="muted">Lokasyon: ${p.currentLocation}</span>
-          <button type="button" data-product-id="${p.id}">Değiştir</button>
-          ${inlineEditor}
+          <strong>SKU: ${card.sku}</strong><br>
+          <span class="muted">Marka: ${card.brand}</span><br>
+          <span class="muted">Ürün Adı: ${card.productName}</span>
+          <div class="variant-list">${variantsHtml}</div>
         </article>
       `;
     })
     .join("");
 
-  container.querySelectorAll("button[data-product-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const selectedId = btn.dataset.productId;
-      state.selectedProductId = state.selectedProductId === selectedId ? null : selectedId;
-      renderSearchResults();
-    });
-  });
-
-  container.querySelectorAll("input[data-checkbox-id]").forEach((checkbox) => {
-    checkbox.addEventListener("change", () => {
-      const productId = checkbox.dataset.checkboxId;
-      if (checkbox.checked) state.selectedProductIds.add(productId);
-      else state.selectedProductIds.delete(productId);
-      renderBulkUpdateState();
-    });
-  });
-
-  container.querySelectorAll("form[data-inline-form-id]").forEach((form) => {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const productId = form.dataset.inlineFormId;
-      updateSingleProductLocation(productId);
-    });
-  });
+  bindCardEvents();
 }
 
-function updateSingleProductLocation(productId) {
-  const products = getProducts();
-  const idx = products.findIndex((p) => p.id === productId);
-  if (idx < 0) {
-    alert("Ürün bulunamadı.");
+function findVariantById(catalog, variantId) {
+  for (const card of catalog) {
+    const variant = card.variants.find((v) => v.id === variantId);
+    if (variant) return { card, variant };
+  }
+  return null;
+}
+
+function updateVariantLocation(variantId) {
+  const catalog = getCatalog();
+  const found = findVariantById(catalog, variantId);
+  if (!found) {
+    alert("Varyant bulunamadı.");
     return;
   }
 
-  const locationInput = document.querySelector(`[data-inline-location-id="${productId}"]`);
-  const noteInput = document.querySelector(`[data-inline-note-id="${productId}"]`);
+  const locationInput = document.querySelector(`[data-variant-location="${variantId}"]`);
+  const noteInput = document.querySelector(`[data-variant-note="${variantId}"]`);
   const newLocation = locationInput?.value;
   const note = noteInput?.value?.trim() || "";
 
@@ -219,14 +190,20 @@ function updateSingleProductLocation(productId) {
     return;
   }
 
-  const oldLocation = products[idx].currentLocation;
-  products[idx].currentLocation = newLocation;
-  setProducts(products);
+  const oldLocation = found.variant.location;
+  found.variant.location = newLocation;
+  setCatalog(catalog);
 
   const movements = getMovements();
   movements.push({
-    id: `m_${Date.now()}_${productId}`,
-    productId,
+    id: `m_${Date.now()}_${variantId}`,
+    sku: found.card.sku,
+    productName: found.card.productName,
+    brand: found.card.brand,
+    variantId,
+    barcode: found.variant.barcode,
+    size: found.variant.size,
+    quantity: found.variant.quantity,
     fromLocation: oldLocation,
     toLocation: newLocation,
     changedBy: state.currentUser?.fullName || "Bilinmeyen",
@@ -235,50 +212,65 @@ function updateSingleProductLocation(productId) {
   });
   setMovements(movements);
 
-  state.selectedProductId = null;
+  state.expandedVariantId = null;
   renderSearchResults();
   renderHistory();
   renderLocationsPage();
 }
 
+function bindCardEvents() {
+  const container = byId("searchResults");
+
+  container.querySelectorAll("button[data-open-editor]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const variantId = btn.dataset.openEditor;
+      state.expandedVariantId = state.expandedVariantId === variantId ? null : variantId;
+      renderSearchResults();
+    });
+  });
+
+  container.querySelectorAll("input[data-variant-checkbox]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const variantId = checkbox.dataset.variantCheckbox;
+      if (checkbox.checked) state.selectedVariantIds.add(variantId);
+      else state.selectedVariantIds.delete(variantId);
+      renderBulkUpdateState();
+    });
+  });
+
+  container.querySelectorAll("form[data-variant-form]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      updateVariantLocation(form.dataset.variantForm);
+    });
+  });
+}
+
 function renderHistory() {
   const movements = getMovements();
-  const products = getProducts();
   const filter = normalizeText(byId("historyFilter").value || "");
 
-  const enriched = movements
-    .map((m) => {
-      const product = products.find((p) => p.id === m.productId);
-      return {
-        ...m,
-        productName: product?.name || "Silinmiş ürün",
-        sku: product?.sku || "-",
-        stockCode: product?.stockCode || "-",
-        size: product?.size || "-",
-        brand: product?.brand || "-",
-      };
-    })
+  const filtered = movements
     .filter((m) => {
       if (!filter) return true;
-      return `${m.productName} ${m.sku} ${m.stockCode} ${m.brand} ${m.size}`
+      return `${m.sku} ${m.productName} ${m.brand} ${m.barcode} ${m.size}`
         .toLocaleLowerCase("tr-TR")
         .includes(filter);
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const container = byId("historyList");
-  if (!enriched.length) {
+  if (!filtered.length) {
     container.innerHTML = `<div class="muted">Henüz hareket kaydı yok.</div>`;
     return;
   }
 
-  container.innerHTML = enriched
+  container.innerHTML = filtered
     .map(
       (m) => `
       <article class="item">
-        <strong>${m.productName}</strong><br>
-        <span class="muted">${m.sku} • Stok Kartı: ${m.stockCode}</span><br>
-        <span class="muted">Marka: ${m.brand} • Beden: ${m.size}</span><br>
+        <strong>SKU: ${m.sku} • ${m.productName}</strong><br>
+        <span class="muted">Marka: ${m.brand} • Barkod: ${m.barcode} • Beden: ${m.size} • Adet: ${m.quantity}</span><br>
         <span>${m.fromLocation} → ${m.toLocation}</span><br>
         <span class="muted">${new Date(m.createdAt).toLocaleString("tr-TR")} • ${m.changedBy}</span>
         ${m.note ? `<br><span class="muted">Not: ${m.note}</span>` : ""}
@@ -289,7 +281,7 @@ function renderHistory() {
 }
 
 function renderLocationsPage() {
-  const products = getProducts();
+  const catalog = getCatalog();
   const filter = normalizeText(byId("locationFilter").value || "");
   const locations = getLocations().filter((location) =>
     location.toLocaleLowerCase("tr-TR").includes(filter)
@@ -303,18 +295,23 @@ function renderLocationsPage() {
 
   container.innerHTML = locations
     .map((locationCode) => {
-      const inLocation = products.filter((p) => p.currentLocation === locationCode);
+      const variantsInLocation = catalog.flatMap((card) =>
+        card.variants
+          .filter((v) => v.location === locationCode)
+          .map((v) => ({ ...v, sku: card.sku, brand: card.brand, productName: card.productName }))
+      );
+
       return `
         <article class="item">
           <strong>${locationCode}</strong><br>
-          <span class="muted">Toplam: ${inLocation.length} ürün</span>
+          <span class="muted">Toplam varyant: ${variantsInLocation.length}</span>
           <div class="location-products">
             ${
-              inLocation.length
-                ? inLocation
+              variantsInLocation.length
+                ? variantsInLocation
                     .map(
-                      (p) =>
-                        `<div>• ${p.name} (${p.sku}) • ${p.brand} • Beden ${p.size} • ${p.stockCode}</div>`
+                      (v) =>
+                        `<div>• SKU ${v.sku} - ${v.productName} • ${v.brand} • Barkod ${v.barcode} • Beden ${v.size} • Adet ${v.quantity}</div>`
                     )
                     .join("")
                 : '<span class="muted">Bu lokasyonda ürün yok.</span>'
@@ -327,8 +324,8 @@ function renderLocationsPage() {
 }
 
 function renderBulkUpdateState() {
-  const count = state.selectedProductIds.size;
-  byId("selectedCount").textContent = `${count} ürün seçili`;
+  const count = state.selectedVariantIds.size;
+  byId("selectedCount").textContent = `${count} varyant seçili`;
   byId("bulkUpdateCard").classList.toggle("hidden", !state.selectionMode);
 }
 
@@ -377,6 +374,7 @@ async function scanBarcode() {
 
     let foundCode = "";
     const timeoutAt = Date.now() + 7000;
+
     while (!foundCode && Date.now() < timeoutAt) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -441,9 +439,9 @@ function bindEvents() {
 
   byId("logoutBtn").addEventListener("click", () => {
     state.currentUser = null;
-    state.selectedProductId = null;
+    state.expandedVariantId = null;
     state.selectionMode = false;
-    state.selectedProductIds.clear();
+    state.selectedVariantIds.clear();
     byId("loginForm").reset();
     showLogin();
   });
@@ -451,7 +449,7 @@ function bindEvents() {
   byId("selectionModeBtn").addEventListener("click", () => {
     state.selectionMode = !state.selectionMode;
     byId("selectionModeBtn").textContent = state.selectionMode ? "Seçim Modu: Açık" : "Seçim Modu";
-    if (!state.selectionMode) state.selectedProductIds.clear();
+    if (!state.selectionMode) state.selectedVariantIds.clear();
     renderSearchResults();
     renderBulkUpdateState();
   });
@@ -466,27 +464,34 @@ function bindEvents() {
 
   byId("bulkUpdateForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const selectedIds = Array.from(state.selectedProductIds);
+
+    const selectedIds = Array.from(state.selectedVariantIds);
     if (!selectedIds.length) {
-      alert("Önce en az bir ürün seçin.");
+      alert("Önce en az bir varyant seçin.");
       return;
     }
 
     const targetLocation = byId("bulkLocation").value;
     const note = byId("bulkNote").value.trim();
-    const products = getProducts();
+    const catalog = getCatalog();
     const movements = getMovements();
 
-    selectedIds.forEach((productId) => {
-      const idx = products.findIndex((p) => p.id === productId);
-      if (idx < 0) return;
+    selectedIds.forEach((variantId) => {
+      const found = findVariantById(catalog, variantId);
+      if (!found) return;
 
-      const oldLocation = products[idx].currentLocation;
-      products[idx].currentLocation = targetLocation;
+      const oldLocation = found.variant.location;
+      found.variant.location = targetLocation;
 
       movements.push({
-        id: `m_${Date.now()}_${productId}`,
-        productId,
+        id: `m_${Date.now()}_${variantId}`,
+        sku: found.card.sku,
+        productName: found.card.productName,
+        brand: found.card.brand,
+        variantId,
+        barcode: found.variant.barcode,
+        size: found.variant.size,
+        quantity: found.variant.quantity,
         fromLocation: oldLocation,
         toLocation: targetLocation,
         changedBy: state.currentUser?.fullName || "Bilinmeyen",
@@ -495,10 +500,10 @@ function bindEvents() {
       });
     });
 
-    setProducts(products);
+    setCatalog(catalog);
     setMovements(movements);
 
-    state.selectedProductIds.clear();
+    state.selectedVariantIds.clear();
     byId("bulkUpdateForm").reset();
     renderSearchResults();
     renderBulkUpdateState();

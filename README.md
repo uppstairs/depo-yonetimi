@@ -14,13 +14,13 @@ Bu repo, küçük bir mağaza ekibi için mobil uyumlu depo lokasyon takip MVP u
 ## MVP Özellikleri
 
 - Basit giriş ekranı (demo kullanıcı listesi)
-- Ürün adına, stok koduna, SKU'ya, barkoda, markaya ve bedene göre arama
+- Ürün adına, SKU'ya, barkoda, markaya ve bedene göre arama
 - Kameradan barkod okuma (tarayıcı destekliyorsa)
 - Ürün kartında **Değiştir** butonuna basınca kartın altında açılan hızlı lokasyon değiştirme alanı
 - Sağ üstteki **Seçim Modu** ile birden fazla ürün seçip toplu lokasyon değişikliği
 - Lokasyonu metin yazarak değil, listeden seçerek güncelleme
 - Lokasyonlar sekmesinde her lokasyondaki ürünleri görme
-- Ürün kartlarında stok kartı bilgileri: **ana stok kodu, barkod, ürün adı, beden, marka**
+- Her SKU tek bir ürün kartı olarak gösterilir; kart içinde varyantlar (barkod + beden + adet + lokasyon) listelenir
 - Tüm verilerin tarayıcı `localStorage` üzerinde saklanması
 
 > Not: Bu sürüm, hızlı validasyon için hazırlanmış prototiptir. Çoklu cihaz senkronizasyonu yoktur.
