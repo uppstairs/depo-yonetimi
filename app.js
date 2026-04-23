@@ -456,7 +456,10 @@ function showLogin() {
 
 function bindEvents() {
   const loginForm = byId("loginForm");
-  if (!loginForm) return;
+  if (!loginForm) {
+    console.error("loginForm bulunamadı. HTML ile app.js eşleşmiyor olabilir.");
+    return;
+  }
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -643,11 +646,17 @@ function bindEvents() {
 }
 
 function main() {
+  if (!byId("loginScreen") || !byId("appScreen") || !byId("loginForm")) {
+    console.error("Kritik UI elemanları bulunamadı. index.html merge edilmiş ama bazı id'ler eksik olabilir.");
+    alert("Uygulama dosyaları tam eşleşmiyor. Lütfen cache temizleyip tekrar deneyin veya index.html merge durumunu kontrol edin.");
+    return;
+  }
   bindEvents();
   showLogin();
 }
 
-main();
-  if (!productsView || !locationsView || !databaseView || !productsTabBtn || !locationsTabBtn || !databaseTabBtn) {
-    return;
-  }
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", main);
+} else {
+  main();
+}
