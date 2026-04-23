@@ -1,3 +1,5 @@
+const API_BASE = "http://localhost:8787/api";
+
 const seedUsers = [
   { username: "ali", password: "1234", fullName: "Ali" },
   { username: "ayse", password: "1234", fullName: "Ayşe" },
@@ -6,85 +8,68 @@ const seedUsers = [
   { username: "can", password: "1234", fullName: "Can" },
 ];
 
-const seedLocations = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2", "D3"];
-
-const seedCatalog = [
-  {
-    sku: "1001",
-    brand: "Jack Jones",
-    productName: "Beyaz Tişört",
-    variants: [
-      { id: "v1001-xs", barcode: "123456", size: "XS", quantity: 6, location: "A1" },
-      { id: "v1001-s", barcode: "234561", size: "S", quantity: 8, location: "A2" },
-      { id: "v1001-m", barcode: "345612", size: "M", quantity: 5, location: "B1" },
-    ],
-  },
-  {
-    sku: "2002",
-    brand: "Mavi",
-    productName: "Slim Fit Jean",
-    variants: [
-      { id: "v2002-30", barcode: "456123", size: "30", quantity: 4, location: "C1" },
-      { id: "v2002-32", barcode: "561234", size: "32", quantity: 3, location: "C2" },
-      { id: "v2002-34", barcode: "612345", size: "34", quantity: 2, location: "C3" },
-    ],
-  },
-];
-
 const state = {
   currentUser: null,
   expandedVariantId: null,
   selectionMode: false,
   selectedVariantIds: new Set(),
+  catalog: [],
+  movements: [],
+  locations: [],
+  apiOnline: false,
 };
 
 function byId(id) {
   return document.getElementById(id);
 }
 
-function getStorage(key, fallback) {
-  const raw = localStorage.getItem(key);
-  return raw ? JSON.parse(raw) : fallback;
-}
-
-function setStorage(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
-function initData() {
-  if (!localStorage.getItem("catalog")) setStorage("catalog", seedCatalog);
-  if (!localStorage.getItem("movements")) setStorage("movements", []);
-  if (!localStorage.getItem("users")) setStorage("users", seedUsers);
-  if (!localStorage.getItem("locations")) setStorage("locations", seedLocations);
-}
-
-function getCatalog() {
-  return getStorage("catalog", []);
-}
-
-function setCatalog(catalog) {
-  setStorage("catalog", catalog);
-}
-
-function getMovements() {
-  return getStorage("movements", []);
-}
-
-function setMovements(movements) {
-  setStorage("movements", movements);
-}
-
-function getLocations() {
-  return getStorage("locations", []);
-}
-
 function normalizeText(value) {
   return value.trim().toLocaleLowerCase("tr-TR");
 }
 
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`API hata: ${res.status}`);
+  return res.json();
+}
+
+async function apiPatch(path, payload) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`API hata: ${res.status}`);
+  return res.json();
+}
+
+async function loadDataFromApi() {
+  const [catalog, movements, locations] = await Promise.all([
+    apiGet("/stock-cards"),
+    apiGet("/movements"),
+    apiGet("/locations"),
+  ]);
+
+  state.catalog = catalog;
+  state.movements = movements.map((m) => ({
+    id: m.id,
+    sku: m.sku,
+    productName: m.product_name,
+    brand: m.brand,
+    barcode: m.barcode,
+    size: m.size,
+    quantity: m.quantity,
+    fromLocation: m.from_location,
+    toLocation: m.to_location,
+    changedBy: m.changed_by,
+    note: m.note,
+    createdAt: m.created_at,
+  }));
+  state.locations = locations;
+}
+
 function populateLocationSelects() {
-  const locations = getLocations();
-  const options = locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("");
+  const options = state.locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("");
   byId("bulkLocation").innerHTML = options;
 }
 
@@ -100,7 +85,7 @@ function matchesQuery(card, query) {
 
 function renderSearchResults() {
   const query = normalizeText(byId("searchInput").value || "");
-  const cards = getCatalog().filter((card) => matchesQuery(card, query));
+  const cards = state.catalog.filter((card) => matchesQuery(card, query));
   const container = byId("searchResults");
 
   if (!cards.length) {
@@ -114,7 +99,7 @@ function renderSearchResults() {
         .map((variant) => {
           const checked = state.selectedVariantIds.has(variant.id) ? "checked" : "";
           const editorOpen = state.expandedVariantId === variant.id;
-          const options = getLocations()
+          const options = state.locations
             .map(
               (loc) => `<option value="${loc}" ${loc === variant.location ? "selected" : ""}>${loc}</option>`
             )
@@ -163,22 +148,15 @@ function renderSearchResults() {
   bindCardEvents();
 }
 
-function findVariantById(catalog, variantId) {
-  for (const card of catalog) {
+function findVariantById(variantId) {
+  for (const card of state.catalog) {
     const variant = card.variants.find((v) => v.id === variantId);
     if (variant) return { card, variant };
   }
   return null;
 }
 
-function updateVariantLocation(variantId) {
-  const catalog = getCatalog();
-  const found = findVariantById(catalog, variantId);
-  if (!found) {
-    alert("Varyant bulunamadı.");
-    return;
-  }
-
+async function updateVariantLocation(variantId) {
   const locationInput = document.querySelector(`[data-variant-location="${variantId}"]`);
   const noteInput = document.querySelector(`[data-variant-note="${variantId}"]`);
   const newLocation = locationInput?.value;
@@ -189,32 +167,18 @@ function updateVariantLocation(variantId) {
     return;
   }
 
-  const oldLocation = found.variant.location;
-  found.variant.location = newLocation;
-  setCatalog(catalog);
-
-  const movements = getMovements();
-  movements.push({
-    id: `m_${Date.now()}_${variantId}`,
-    sku: found.card.sku,
-    productName: found.card.productName,
-    brand: found.card.brand,
-    variantId,
-    barcode: found.variant.barcode,
-    size: found.variant.size,
-    quantity: found.variant.quantity,
-    fromLocation: oldLocation,
-    toLocation: newLocation,
-    changedBy: state.currentUser?.fullName || "Bilinmeyen",
-    note,
-    createdAt: new Date().toISOString(),
-  });
-  setMovements(movements);
-
-  state.expandedVariantId = null;
-  renderSearchResults();
-  renderHistory();
-  renderLocationsPage();
+  try {
+    await apiPatch(`/variants/${variantId}/location`, {
+      toLocation: newLocation,
+      changedBy: state.currentUser?.fullName || "Bilinmeyen",
+      note,
+    });
+    await refreshData();
+    state.expandedVariantId = null;
+    renderAll();
+  } catch (error) {
+    alert("Lokasyon güncellenemedi. API bağlantısını kontrol edin.");
+  }
 }
 
 function bindCardEvents() {
@@ -248,10 +212,9 @@ function bindCardEvents() {
 }
 
 function renderHistory() {
-  const movements = getMovements();
   const filter = normalizeText(byId("historyFilter").value || "");
 
-  const filtered = movements
+  const filtered = state.movements
     .filter((m) => {
       if (!filter) return true;
       return `${m.sku} ${m.productName} ${m.brand} ${m.barcode} ${m.size}`
@@ -282,11 +245,8 @@ function renderHistory() {
 }
 
 function renderLocationsPage() {
-  const catalog = getCatalog();
   const filter = normalizeText(byId("locationFilter").value || "");
-  const locations = getLocations().filter((location) =>
-    location.toLocaleLowerCase("tr-TR").includes(filter)
-  );
+  const locations = state.locations.filter((location) => location.toLocaleLowerCase("tr-TR").includes(filter));
 
   const container = byId("locationsList");
   if (!locations.length) {
@@ -296,7 +256,7 @@ function renderLocationsPage() {
 
   container.innerHTML = locations
     .map((locationCode) => {
-      const variantsInLocation = catalog.flatMap((card) =>
+      const variantsInLocation = state.catalog.flatMap((card) =>
         card.variants
           .filter((v) => v.location === locationCode)
           .map((v) => ({ ...v, sku: card.sku, brand: card.brand, productName: card.productName }))
@@ -331,8 +291,7 @@ function renderBulkUpdateState() {
 }
 
 function attemptLogin(username, password) {
-  const users = getStorage("users", []);
-  return users.find(
+  return seedUsers.find(
     (u) => normalizeText(u.username) === normalizeText(username) && u.password === password
   );
 }
@@ -402,16 +361,36 @@ async function scanBarcode() {
   }
 }
 
-function showApp() {
+async function refreshData() {
+  await loadDataFromApi();
+}
+
+function renderAll() {
+  populateLocationSelects();
+  renderSearchResults();
+  renderHistory();
+  renderBulkUpdateState();
+}
+
+async function showApp() {
   byId("loginScreen").classList.add("hidden");
   byId("appScreen").classList.remove("hidden");
   byId("logoutBtn").classList.remove("hidden");
   byId("selectionModeBtn").classList.remove("hidden");
 
-  populateLocationSelects();
-  renderSearchResults();
-  renderHistory();
-  renderBulkUpdateState();
+  try {
+    await refreshData();
+    state.apiOnline = true;
+    byId("barcodeStatus").textContent = "Veriler veritabanından yüklendi.";
+  } catch (error) {
+    state.apiOnline = false;
+    byId("barcodeStatus").textContent = "API'ye bağlanılamadı. Önce backend/server.py başlatın.";
+    state.catalog = [];
+    state.movements = [];
+    state.locations = [];
+  }
+
+  renderAll();
   showTab("products");
 }
 
@@ -423,7 +402,7 @@ function showLogin() {
 }
 
 function bindEvents() {
-  byId("loginForm").addEventListener("submit", (e) => {
+  byId("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const username = byId("username").value;
     const password = byId("password").value;
@@ -435,7 +414,7 @@ function bindEvents() {
     }
 
     state.currentUser = user;
-    showApp();
+    await showApp();
   });
 
   byId("logoutBtn").addEventListener("click", () => {
@@ -463,7 +442,7 @@ function bindEvents() {
   byId("locationFilter").addEventListener("input", renderLocationsPage);
   byId("scanBarcodeBtn").addEventListener("click", scanBarcode);
 
-  byId("bulkUpdateForm").addEventListener("submit", (e) => {
+  byId("bulkUpdateForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const selectedIds = Array.from(state.selectedVariantIds);
@@ -474,47 +453,28 @@ function bindEvents() {
 
     const targetLocation = byId("bulkLocation").value;
     const note = byId("bulkNote").value.trim();
-    const catalog = getCatalog();
-    const movements = getMovements();
 
-    selectedIds.forEach((variantId) => {
-      const found = findVariantById(catalog, variantId);
-      if (!found) return;
+    try {
+      for (const variantId of selectedIds) {
+        await apiPatch(`/variants/${variantId}/location`, {
+          toLocation: targetLocation,
+          changedBy: state.currentUser?.fullName || "Bilinmeyen",
+          note,
+        });
+      }
 
-      const oldLocation = found.variant.location;
-      found.variant.location = targetLocation;
-
-      movements.push({
-        id: `m_${Date.now()}_${variantId}`,
-        sku: found.card.sku,
-        productName: found.card.productName,
-        brand: found.card.brand,
-        variantId,
-        barcode: found.variant.barcode,
-        size: found.variant.size,
-        quantity: found.variant.quantity,
-        fromLocation: oldLocation,
-        toLocation: targetLocation,
-        changedBy: state.currentUser?.fullName || "Bilinmeyen",
-        note,
-        createdAt: new Date().toISOString(),
-      });
-    });
-
-    setCatalog(catalog);
-    setMovements(movements);
-
-    state.selectedVariantIds.clear();
-    byId("bulkUpdateForm").reset();
-    renderSearchResults();
-    renderBulkUpdateState();
-    renderHistory();
-    renderLocationsPage();
+      await refreshData();
+      state.selectedVariantIds.clear();
+      byId("bulkUpdateForm").reset();
+      renderAll();
+      renderLocationsPage();
+    } catch (error) {
+      alert("Toplu güncelleme sırasında API hatası oluştu.");
+    }
   });
 }
 
 function main() {
-  initData();
   bindEvents();
   showLogin();
 }

@@ -22,23 +22,33 @@ Bu repo, küçük bir mağaza ekibi için mobil uyumlu depo lokasyon takip MVP u
 - Lokasyonlar sekmesinde her lokasyondaki ürünleri görme
 - Her SKU tek bir ürün kartı olarak gösterilir; kart içinde varyantlar (barkod + beden + adet + lokasyon) listelenir
 - Varyantlar masaüstünde satırda 3 sütun, dar ekranlarda otomatik olarak 2/1 sütuna düşen responsive yapıdadır
-- Tüm verilerin tarayıcı `localStorage` üzerinde saklanması
+- Tüm verilerin merkezi SQLite veritabanında saklanması
 
-> Not: Bu sürüm, hızlı validasyon için hazırlanmış prototiptir. Çoklu cihaz senkronizasyonu yoktur.
+> Not: Bu sürümde arayüz doğrudan SQLite API üzerinden çalışır; çoklu cihazda ortak veri kullanımı sağlanır.
 
 ## Çalıştırma
 
-### Seçenek 1 — Dosyayı doğrudan aç
+### Seçenek 1 — API + frontend birlikte
 
-`index.html` dosyasını tarayıcıda aç.
+Önce API'yi başlat:
 
-### Seçenek 2 — Basit local server
+```bash
+python3 backend/server.py
+```
+
+Sonra frontend'i aç:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Sonra `http://localhost:8080` adresine git.
+ve `http://localhost:8080` adresine git.
+
+### Seçenek 2 — Sadece frontend dosyasını aç (önerilmez)
+
+`index.html` dosyasını tarayıcıda aç.
+
+> Bu durumda API çalışmıyorsa ürün/hareket verileri gelmez.
 
 ## Veritabanı (SQLite) ve API
 
