@@ -40,6 +40,34 @@ python3 -m http.server 8080
 
 Sonra `http://localhost:8080` adresine git.
 
+## Veritabanı (SQLite) ve API
+
+Projeye merkezi veri yönetimi için SQLite tabanlı bir API eklendi.
+
+### Şema
+
+- `database/schema.sql`
+  - `stock_cards` (SKU, marka, ürün adı)
+  - `variants` (barkod, beden, adet, lokasyon)
+  - `movements` (hareket geçmişi)
+  - `users`, `locations`
+
+### API başlatma
+
+```bash
+python3 backend/server.py
+```
+
+API varsayılan olarak `http://localhost:8787` adresinde çalışır.
+
+### Örnek endpoint'ler
+
+- `GET /api/stock-cards` → stok kartları + varyantlar
+- `POST /api/stock-cards` → yeni stok kartı açma
+- `POST /api/variants` → stok kartına varyant ekleme
+- `PATCH /api/variants/{id}/location` → lokasyon değiştirme + hareket geçmişine yazma
+- `GET /api/movements` → ana ekrandaki hareket geçmişi verisi
+
 ## Demo Kullanıcıları
 
 - ali / 1234
