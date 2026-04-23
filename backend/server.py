@@ -26,7 +26,7 @@ SEED_CARDS = [
         "sku": "1001",
         "brand": "Jack Jones",
         "product_name": "Beyaz Tişört",
-        "location": "A1",
+        "location": "K1",
         "variants": [
             {"id": "v1001-xs", "barcode": "123456", "size": "XS", "quantity": 6},
             {"id": "v1001-s", "barcode": "234561", "size": "S", "quantity": 8},
@@ -189,7 +189,7 @@ class Handler(BaseHTTPRequestHandler):
             product_name = payload.get("productName")
             if not sku or not brand or not product_name:
                 return self._json_response(400, {"error": "sku, brand, productName zorunlu"})
-            location = payload.get("location", "A1")
+            location = payload.get("location", "K1")
 
             with get_db() as conn:
                 cur = conn.execute(
