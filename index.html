@@ -42,9 +42,54 @@
         <div class="tabs">
           <button id="productsTabBtn" class="tab active" type="button">Ürünler</button>
           <button id="locationsTabBtn" class="tab" type="button">Lokasyonlar</button>
+          <button id="databaseTabBtn" class="tab" type="button">DB İşlemleri</button>
         </div>
 
         <section id="productsView">
+          <section class="card">
+            <h2>Ürün Ara</h2>
+            <div class="stack">
+              <input id="searchInput" placeholder="SKU, barkod, marka, beden veya ürün adı ara" />
+              <div class="row">
+                <button id="scanBarcodeBtn" type="button" class="ghost">📷 Barkod Oku</button>
+              </div>
+              <p id="barcodeStatus" class="hint"></p>
+            </div>
+            <div id="searchResults" class="list"></div>
+          </section>
+
+          <section id="bulkUpdateCard" class="card hidden">
+            <h2>Toplu Lokasyon Değiştir</h2>
+            <div id="selectedCount" class="muted">0 ürün seçili</div>
+            <form id="bulkUpdateForm" class="stack">
+              <label>
+                Yeni Lokasyon
+                <select id="bulkLocation" required></select>
+              </label>
+              <label>
+                Not
+                <input id="bulkNote" placeholder="Opsiyonel" />
+              </label>
+              <button type="submit">Seçili Ürünleri Güncelle</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>Hareket Geçmişi</h2>
+            <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
+            <div id="historyList" class="list"></div>
+          </section>
+        </section>
+
+        <section id="locationsView" class="hidden">
+          <section class="card">
+            <h2>Lokasyona Göre Ürünler</h2>
+            <input id="locationFilter" placeholder="Lokasyon kodu filtrele (örn: A, B1)" />
+            <div id="locationsList" class="list"></div>
+          </section>
+        </section>
+
+        <section id="databaseView" class="hidden">
           <section class="card">
             <h2>Veritabanı İşlemleri</h2>
             <div class="stack">
@@ -89,49 +134,15 @@
                 </label>
                 <button type="submit">Varyant Ekle</button>
               </form>
+
+              <form id="importExcelForm" class="stack">
+                <strong>Excel/CSV ile Toplu İçe Aktar</strong>
+                <p class="hint">Şablonu indirip Excel'de doldurun, CSV (UTF-8) olarak kaydedip içe aktarın.</p>
+                <button id="downloadTemplateBtn" type="button" class="ghost">Şablon İndir (CSV)</button>
+                <input id="importFileInput" type="file" accept=".csv" required />
+                <button type="submit">İçe Aktar</button>
+              </form>
             </div>
-          </section>
-
-          <section class="card">
-            <h2>Ürün Ara</h2>
-            <div class="stack">
-              <input id="searchInput" placeholder="SKU, barkod, marka, beden veya ürün adı ara" />
-              <div class="row">
-                <button id="scanBarcodeBtn" type="button" class="ghost">📷 Barkod Oku</button>
-              </div>
-              <p id="barcodeStatus" class="hint"></p>
-            </div>
-            <div id="searchResults" class="list"></div>
-          </section>
-
-          <section id="bulkUpdateCard" class="card hidden">
-            <h2>Toplu Lokasyon Değiştir</h2>
-            <div id="selectedCount" class="muted">0 ürün seçili</div>
-            <form id="bulkUpdateForm" class="stack">
-              <label>
-                Yeni Lokasyon
-                <select id="bulkLocation" required></select>
-              </label>
-              <label>
-                Not
-                <input id="bulkNote" placeholder="Opsiyonel" />
-              </label>
-              <button type="submit">Seçili Ürünleri Güncelle</button>
-            </form>
-          </section>
-
-          <section class="card">
-            <h2>Hareket Geçmişi</h2>
-            <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
-            <div id="historyList" class="list"></div>
-          </section>
-        </section>
-
-        <section id="locationsView" class="hidden">
-          <section class="card">
-            <h2>Lokasyona Göre Ürünler</h2>
-            <input id="locationFilter" placeholder="Lokasyon kodu filtrele (örn: A, B1)" />
-            <div id="locationsList" class="list"></div>
           </section>
         </section>
       </section>

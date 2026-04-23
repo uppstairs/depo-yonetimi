@@ -89,6 +89,39 @@ function populateSkuSelect() {
   byId("variantSku").innerHTML = options.join("");
 }
 
+function downloadImportTemplate() {
+  const template = [
+    "sku,brand,productName,barcode,size,quantity,location",
+    "1001,Jack Jones,Beyaz Tişört,123456,XS,6,A1",
+    "1001,Jack Jones,Beyaz Tişört,234561,S,8,A2",
+    "1001,Jack Jones,Beyaz Tişört,345612,M,5,B1",
+  ].join("\\n");
+
+  const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "stok_karti_sablon.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function parseCsvRows(csvText) {
+  const lines = csvText.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim());
+  return lines.slice(1).map((line) => {
+    const values = line.split(",").map((v) => v.trim());
+    const row = {};
+    headers.forEach((h, i) => {
+      row[h] = values[i] ?? "";
+    });
+    return row;
+  });
+}
+
 function matchesQuery(card, query) {
   if (!query) return true;
   const cardText = `${card.sku} ${card.brand} ${card.productName}`.toLocaleLowerCase("tr-TR");
@@ -315,17 +348,23 @@ function attemptLogin(username, password) {
 function showTab(tabName) {
   const productsView = byId("productsView");
   const locationsView = byId("locationsView");
+  const databaseView = byId("databaseView");
   const productsTabBtn = byId("productsTabBtn");
   const locationsTabBtn = byId("locationsTabBtn");
+  const databaseTabBtn = byId("databaseTabBtn");
 
   const productsActive = tabName === "products";
+  const locationsActive = tabName === "locations";
+  const databaseActive = tabName === "database";
   productsView.classList.toggle("hidden", !productsActive);
-  locationsView.classList.toggle("hidden", productsActive);
+  locationsView.classList.toggle("hidden", !locationsActive);
+  databaseView.classList.toggle("hidden", !databaseActive);
 
   productsTabBtn.classList.toggle("active", productsActive);
-  locationsTabBtn.classList.toggle("active", !productsActive);
+  locationsTabBtn.classList.toggle("active", locationsActive);
+  databaseTabBtn.classList.toggle("active", databaseActive);
 
-  if (!productsActive) renderLocationsPage();
+  if (locationsActive) renderLocationsPage();
 }
 
 async function scanBarcode() {
@@ -453,6 +492,7 @@ function bindEvents() {
 
   byId("productsTabBtn").addEventListener("click", () => showTab("products"));
   byId("locationsTabBtn").addEventListener("click", () => showTab("locations"));
+  byId("databaseTabBtn").addEventListener("click", () => showTab("database"));
 
   byId("searchInput").addEventListener("input", renderSearchResults);
   byId("historyFilter").addEventListener("input", renderHistory);
@@ -534,6 +574,69 @@ function bindEvents() {
       alert("Varyant eklendi.");
     } catch (error) {
       alert("Varyant eklenemedi. Barkod benzersiz olmalıdır.");
+    }
+  });
+
+  byId("downloadTemplateBtn").addEventListener("click", downloadImportTemplate);
+
+  byId("importExcelForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const file = byId("importFileInput").files?.[0];
+    if (!file) {
+      alert("Lütfen bir CSV dosyası seçin.");
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      const rows = parseCsvRows(content);
+      if (!rows.length) {
+        alert("Dosyada içe aktarılacak satır bulunamadı.");
+        return;
+      }
+
+      const createdSkus = new Set();
+      for (const row of rows) {
+        const sku = (row.sku || "").trim();
+        const brand = (row.brand || "").trim();
+        const productName = (row.productName || "").trim();
+        const barcode = (row.barcode || "").trim();
+        const size = (row.size || "").trim();
+        const quantity = Number(row.quantity || 0);
+        const location = (row.location || "").trim();
+
+        if (!sku || !brand || !productName || !barcode || !size || !location) continue;
+
+        if (!createdSkus.has(sku)) {
+          try {
+            await apiPost("/stock-cards", { sku, brand, productName });
+          } catch (_error) {
+            // SKU zaten varsa import devam eder.
+          }
+          createdSkus.add(sku);
+        }
+
+        const variantId = `v_${sku}_${size.toLowerCase()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        try {
+          await apiPost("/variants", {
+            id: variantId,
+            sku,
+            barcode,
+            size,
+            quantity,
+            location,
+          });
+        } catch (_error) {
+          // Varyant/barkod zaten varsa satır atlanır.
+        }
+      }
+
+      byId("importExcelForm").reset();
+      await refreshData();
+      renderAll();
+      alert("Excel/CSV içe aktarma tamamlandı.");
+    } catch (error) {
+      alert("İçe aktarma sırasında hata oluştu. Dosya biçimini kontrol edin.");
     }
   });
 }

@@ -80,11 +80,16 @@ API varsayılan olarak `http://localhost:8787` adresinde çalışır.
 
 ### Arayüzden DB işlemleri
 
-Ana ekranda **Veritabanı İşlemleri** bölümünden:
+Arayüzde ayrı bir **DB İşlemleri** sekmesi bulunur. Bu sekmeden:
 
 - Yeni stok kartı açabilirsin (SKU, marka, ürün adı).
 - Mevcut SKU'ya varyant ekleyebilirsin (barkod, beden, adet, lokasyon).
 - Varyant lokasyon değişiklikleri ve toplu işlemler doğrudan DB'ye yazılır.
+- Excel için CSV şablonu indirip toplu içe aktar yapabilirsin.
+
+### Excel/CSV şablon sütunları
+
+`sku,brand,productName,barcode,size,quantity,location`
 
 ## Demo Kullanıcıları
 
