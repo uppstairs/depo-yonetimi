@@ -10,7 +10,10 @@
     <main class="app-shell">
       <header class="topbar">
         <h1>Depo Yönetimi</h1>
-        <button id="logoutBtn" class="ghost hidden" type="button">Çıkış</button>
+        <div class="actions">
+          <button id="selectionModeBtn" class="ghost hidden" type="button">Seçim Modu</button>
+          <button id="logoutBtn" class="ghost hidden" type="button">Çıkış</button>
+        </div>
       </header>
 
       <section id="loginScreen" class="card">
@@ -36,34 +39,117 @@
       </section>
 
       <section id="appScreen" class="hidden">
-        <section class="card">
-          <h2>Ürün Ara</h2>
-          <div class="stack">
-            <input id="searchInput" placeholder="SKU veya ürün adı ara" />
+        <div class="tabs">
+          <button id="productsTabBtn" class="tab active" type="button">Ürünler</button>
+          <button id="locationsTabBtn" class="tab" type="button">Lokasyonlar</button>
+          <button id="databaseTabBtn" class="tab" type="button">DB İşlemleri</button>
+        </div>
+
+        <!-- ÜRÜNLER -->
+        <section id="productsView">
+          <section class="card">
+            <h2>Ürün Ara</h2>
+            <div class="stack">
+              <input id="searchInput" placeholder="SKU, barkod, marka, beden veya ürün adı ara" />
+              <div class="row">
+                <button id="scanBarcodeBtn" type="button" class="ghost">📷 Barkod Oku</button>
+              </div>
+              <p id="barcodeStatus" class="hint"></p>
+            </div>
             <div id="searchResults" class="list"></div>
-          </div>
+          </section>
+
+          <section id="bulkUpdateCard" class="card hidden">
+            <h2>Toplu Lokasyon Değiştir</h2>
+            <div id="selectedCount" class="muted">0 ürün seçili</div>
+            <form id="bulkUpdateForm" class="stack">
+              <label>
+                Yeni Lokasyon
+                <select id="bulkLocation" required></select>
+              </label>
+              <label>
+                Not
+                <input id="bulkNote" placeholder="Opsiyonel" />
+              </label>
+              <button type="submit">Seçili Ürünleri Güncelle</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2>Hareket Geçmişi</h2>
+            <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
+            <div id="historyList" class="list"></div>
+          </section>
         </section>
 
-        <section class="card">
-          <h2>Seçili Ürün</h2>
-          <div id="selectedProductBox" class="muted">Ürün seçilmedi.</div>
-          <form id="updateLocationForm" class="stack hidden">
-            <label>
-              Yeni Lokasyon Kodu
-              <input id="newLocation" placeholder="Örn: B2" required />
-            </label>
-            <label>
-              Not
-              <input id="movementNote" placeholder="Opsiyonel" />
-            </label>
-            <button type="submit">Lokasyonu Güncelle</button>
-          </form>
+        <!-- LOKASYONLAR -->
+        <section id="locationsView" class="hidden">
+          <section class="card">
+            <h2>Lokasyona Göre Ürünler</h2>
+            <input id="locationFilter" placeholder="Lokasyon kodu filtrele (örn: A, B1)" />
+            <div id="locationsList" class="list"></div>
+          </section>
         </section>
 
-        <section class="card">
-          <h2>Hareket Geçmişi</h2>
-          <input id="historyFilter" placeholder="Ürün adı / SKU filtrele" />
-          <div id="historyList" class="list"></div>
+        <!-- DB İŞLEMLERİ -->
+        <section id="databaseView" class="hidden">
+          <section class="card">
+            <h2>Veritabanı İşlemleri</h2>
+            <div class="stack">
+
+              <form id="createStockCardForm" class="stack">
+                <strong>Yeni Stok Kartı Aç</strong>
+                <label>
+                  SKU
+                  <input id="newSku" required />
+                </label>
+                <label>
+                  Marka
+                  <input id="newBrand" required />
+                </label>
+                <label>
+                  Ürün Adı
+                  <input id="newProductName" required />
+                </label>
+                <label>
+                  Lokasyon
+                  <select id="newCardLocation" required></select>
+                </label>
+                <button type="submit">Stok Kartı Oluştur</button>
+              </form>
+
+              <form id="createVariantForm" class="stack">
+                <strong>Varyant Ekle</strong>
+                <label>
+                  SKU
+                  <select id="variantSku" required></select>
+                </label>
+                <label>
+                  Barkod
+                  <input id="variantBarcode" required />
+                </label>
+                <label>
+                  Beden
+                  <input id="variantSize" required />
+                </label>
+                <label>
+                  Adet
+                  <input id="variantQuantity" type="number" value="0" required />
+                </label>
+                <button type="submit">Varyant Ekle</button>
+              </form>
+
+              <form id="importExcelForm" class="stack">
+                <strong>CSV İçe Aktar</strong>
+                <button id="downloadTemplateBtn" type="button" class="ghost">
+                  Şablon İndir
+                </button>
+                <input id="importFileInput" type="file" accept=".csv" required />
+                <button type="submit">İçe Aktar</button>
+              </form>
+
+            </div>
+          </section>
         </section>
       </section>
     </main>
