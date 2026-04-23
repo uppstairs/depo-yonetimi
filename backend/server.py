@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import mimetypes
 import sqlite3
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -149,7 +150,34 @@ class Handler(BaseHTTPRequestHandler):
                 locations = conn.execute("SELECT code FROM locations ORDER BY code").fetchall()
             return self._json_response(200, [row["code"] for row in locations])
 
-        return self._json_response(404, {"error": "Not found"})
+        # API dışındaki isteklerde tek uygulama olarak frontend dosyalarını servis et.
+        # Böylece Coolify'de ayrı frontend + proxy kurmaya gerek kalmaz.
+        return self._serve_static(path)
+
+    def _serve_static(self, path):
+        safe_path = path.split("?", 1)[0]
+        if safe_path in ("/", ""):
+            file_path = ROOT / "index.html"
+        else:
+            file_path = (ROOT / safe_path.lstrip("/")).resolve()
+
+        # Path traversal koruması
+        if not str(file_path).startswith(str(ROOT.resolve())):
+            return self._json_response(403, {"error": "Forbidden"})
+
+        if not file_path.exists() or not file_path.is_file():
+            return self._json_response(404, {"error": "Not found"})
+
+        content = file_path.read_bytes()
+        mime, _ = mimetypes.guess_type(str(file_path))
+        content_type = mime or "application/octet-stream"
+
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(content)
 
     def do_POST(self):
         path = urlparse(self.path).path

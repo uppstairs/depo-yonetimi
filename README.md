@@ -44,6 +44,18 @@ python3 -m http.server 8080
 
 ve `http://localhost:8080` adresine git.
 
+### Seçenek 1B — Tek servis (önerilen, canlı için kolay)
+
+Sadece backend'i çalıştır:
+
+```bash
+python3 backend/server.py
+```
+
+Bu modda API ve frontend aynı servisten gelir:
+- Uygulama: `http://localhost:8787`
+- API: `http://localhost:8787/api/...`
+
 ### Seçenek 2 — Sadece frontend dosyasını aç (önerilmez)
 
 `index.html` dosyasını tarayıcıda aç.
