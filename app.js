@@ -70,7 +70,6 @@ function normalizeText(value) {
 function populateLocationSelects() {
   const locations = getLocations();
   const options = locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("");
-  byId("newLocation").innerHTML = options;
   byId("bulkLocation").innerHTML = options;
 }
 
@@ -93,6 +92,25 @@ function renderSearchResults() {
   container.innerHTML = filtered
     .map((p) => {
       const checked = state.selectedProductIds.has(p.id) ? "checked" : "";
+      const options = getLocations()
+        .map((loc) => `<option value="${loc}" ${loc === p.currentLocation ? "selected" : ""}>${loc}</option>`)
+        .join("");
+      const inlineEditor =
+        state.selectedProductId === p.id
+          ? `
+            <form class="stack inline-editor" data-inline-form-id="${p.id}">
+              <label>
+                Yeni Lokasyon
+                <select data-inline-location-id="${p.id}" required>${options}</select>
+              </label>
+              <label>
+                Not
+                <input data-inline-note-id="${p.id}" placeholder="Opsiyonel" />
+              </label>
+              <button type="submit">Lokasyonu Güncelle</button>
+            </form>
+          `
+          : "";
       return `
         <article class="item">
           <div class="item-head">
@@ -102,6 +120,7 @@ function renderSearchResults() {
           <span class="muted">${p.sku} • Barkod: ${p.barcode}</span><br>
           <span class="muted">Lokasyon: ${p.currentLocation}</span>
           <button type="button" data-product-id="${p.id}">Değiştir</button>
+          ${inlineEditor}
         </article>
       `;
     })
@@ -109,8 +128,9 @@ function renderSearchResults() {
 
   container.querySelectorAll("button[data-product-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      state.selectedProductId = btn.dataset.productId;
-      renderSelectedProduct();
+      const selectedId = btn.dataset.productId;
+      state.selectedProductId = state.selectedProductId === selectedId ? null : selectedId;
+      renderSearchResults();
     });
   });
 
@@ -122,35 +142,54 @@ function renderSearchResults() {
       renderBulkUpdateState();
     });
   });
+
+  container.querySelectorAll("form[data-inline-form-id]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const productId = form.dataset.inlineFormId;
+      updateSingleProductLocation(productId);
+    });
+  });
 }
 
-function renderSelectedProduct(message = "") {
-  const box = byId("selectedProductBox");
-  const form = byId("updateLocationForm");
-
-  if (!state.selectedProductId) {
-    box.innerHTML = `<span class="muted">Ürün seçilmedi.</span>`;
-    form.classList.add("hidden");
+function updateSingleProductLocation(productId) {
+  const products = getProducts();
+  const idx = products.findIndex((p) => p.id === productId);
+  if (idx < 0) {
+    alert("Ürün bulunamadı.");
     return;
   }
 
-  const product = getProducts().find((p) => p.id === state.selectedProductId);
-  if (!product) {
-    state.selectedProductId = null;
-    box.innerHTML = `<span class="muted">Ürün bulunamadı.</span>`;
-    form.classList.add("hidden");
+  const locationInput = document.querySelector(`[data-inline-location-id="${productId}"]`);
+  const noteInput = document.querySelector(`[data-inline-note-id="${productId}"]`);
+  const newLocation = locationInput?.value;
+  const note = noteInput?.value?.trim() || "";
+
+  if (!newLocation) {
+    alert("Yeni lokasyon seçmelisiniz.");
     return;
   }
 
-  box.innerHTML = `
-    <strong>${product.name}</strong><br>
-    <span class="muted">${product.sku} • Barkod: ${product.barcode}</span><br>
-    <span class="muted">Mevcut Lokasyon: ${product.currentLocation}</span>
-    ${message ? `<p class="success">${message}</p>` : ""}
-  `;
+  const oldLocation = products[idx].currentLocation;
+  products[idx].currentLocation = newLocation;
+  setProducts(products);
 
-  byId("newLocation").value = product.currentLocation;
-  form.classList.remove("hidden");
+  const movements = getMovements();
+  movements.push({
+    id: `m_${Date.now()}_${productId}`,
+    productId,
+    fromLocation: oldLocation,
+    toLocation: newLocation,
+    changedBy: state.currentUser?.fullName || "Bilinmeyen",
+    note,
+    createdAt: new Date().toISOString(),
+  });
+  setMovements(movements);
+
+  state.selectedProductId = null;
+  renderSearchResults();
+  renderHistory();
+  renderLocationsPage();
 }
 
 function renderHistory() {
@@ -312,7 +351,6 @@ function showApp() {
 
   populateLocationSelects();
   renderSearchResults();
-  renderSelectedProduct();
   renderHistory();
   renderBulkUpdateState();
   showTab("products");
@@ -365,39 +403,6 @@ function bindEvents() {
   byId("historyFilter").addEventListener("input", renderHistory);
   byId("locationFilter").addEventListener("input", renderLocationsPage);
   byId("scanBarcodeBtn").addEventListener("click", scanBarcode);
-
-  byId("updateLocationForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const products = getProducts();
-    const idx = products.findIndex((p) => p.id === state.selectedProductId);
-    if (idx < 0) {
-      alert("Ürün bulunamadı.");
-      return;
-    }
-
-    const oldLocation = products[idx].currentLocation;
-    const newLocation = byId("newLocation").value;
-    products[idx].currentLocation = newLocation;
-    setProducts(products);
-
-    const movements = getMovements();
-    movements.push({
-      id: `m_${Date.now()}`,
-      productId: products[idx].id,
-      fromLocation: oldLocation,
-      toLocation: newLocation,
-      changedBy: state.currentUser?.fullName || "Bilinmeyen",
-      note: byId("movementNote").value.trim(),
-      createdAt: new Date().toISOString(),
-    });
-    setMovements(movements);
-
-    byId("updateLocationForm").reset();
-    renderSearchResults();
-    renderSelectedProduct("Lokasyon güncellendi.");
-    renderHistory();
-    renderLocationsPage();
-  });
 
   byId("bulkUpdateForm").addEventListener("submit", (e) => {
     e.preventDefault();

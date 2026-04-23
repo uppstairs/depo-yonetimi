@@ -16,7 +16,7 @@ Bu repo, küçük bir mağaza ekibi için mobil uyumlu depo lokasyon takip MVP u
 - Basit giriş ekranı (demo kullanıcı listesi)
 - Ürün adına, SKU'ya veya barkoda göre arama
 - Kameradan barkod okuma (tarayıcı destekliyorsa)
-- Ürün kartında **Değiştir** akışı
+- Ürün kartında **Değiştir** butonuna basınca kartın altında açılan hızlı lokasyon değiştirme alanı
 - Sağ üstteki **Seçim Modu** ile birden fazla ürün seçip toplu lokasyon değişikliği
 - Lokasyonu metin yazarak değil, listeden seçerek güncelleme
 - Lokasyonlar sekmesinde her lokasyondaki ürünleri görme
