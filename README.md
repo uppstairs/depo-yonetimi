@@ -70,6 +70,7 @@ python3 backend/server.py
 
 API varsayılan olarak `http://localhost:8787` adresinde çalışır.
 Canlı ortamda frontend API çağrılarını aynı domain üzerinden `/api` ile yapacak şekilde proxylemek önerilir.
+Eğer `/api` route kurulamazsa `api.domain.com` gibi ayrı bir backend domaini de kullanılabilir.
 
 ### Örnek endpoint'ler
 

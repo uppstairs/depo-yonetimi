@@ -1,7 +1,12 @@
-const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8787/api"
-    : "/api";
+const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const hostParts = window.location.hostname.split(".");
+const rootDomain = hostParts.length >= 2 ? hostParts.slice(-2).join(".") : window.location.hostname;
+
+const API_BASE_CANDIDATES = isLocalHost
+  ? ["http://localhost:8787/api"]
+  : ["/api", `${window.location.protocol}//api.${rootDomain}/api`, `${window.location.protocol}//${window.location.hostname}:8787/api`];
+
+let resolvedApiBase = null;
 
 const seedUsers = [
   { username: "ali", password: "1234", fullName: "Ali" },
@@ -31,13 +36,13 @@ function normalizeText(value) {
 }
 
 async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`);
+  const res = await apiRequest(path, { method: "GET" });
   if (!res.ok) throw new Error(`API hata: ${res.status}`);
   return res.json();
 }
 
 async function apiPatch(path, payload) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiRequest(path, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -47,13 +52,33 @@ async function apiPatch(path, payload) {
 }
 
 async function apiPost(path, payload) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiRequest(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`API hata: ${res.status}`);
   return res.json();
+}
+
+async function apiRequest(path, options) {
+  const bases = resolvedApiBase ? [resolvedApiBase] : API_BASE_CANDIDATES;
+
+  for (const base of bases) {
+    try {
+      const res = await fetch(`${base}${path}`, options);
+
+      // 404 çoğunlukla yanlış route/base anlamına geldiği için bir sonraki adrese geç.
+      if (res.status === 404 && !resolvedApiBase) continue;
+
+      resolvedApiBase = base;
+      return res;
+    } catch (_error) {
+      // Network/CORS hatası: sonraki adayı dene.
+    }
+  }
+
+  throw new Error("Hiçbir API adresine bağlanılamadı.");
 }
 
 async function loadDataFromApi() {
