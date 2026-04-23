@@ -121,7 +121,7 @@ function renderSearchResults() {
             .join("");
 
           return `
-            <div class="variant-row">
+            <div class="variant-row" data-open-editor="${variant.id}">
               <div class="variant-head">
                 <div>
                   <span><strong>Barkod:</strong> ${variant.barcode}</span><br>
@@ -129,7 +129,6 @@ function renderSearchResults() {
                 </div>
                 ${state.selectionMode ? `<input type="checkbox" data-variant-checkbox="${variant.id}" ${checked} />` : ""}
               </div>
-              <button type="button" data-open-editor="${variant.id}" class="ghost">Değiştir</button>
               ${
                 editorOpen
                   ? `<form class="stack inline-editor" data-variant-form="${variant.id}">
@@ -221,15 +220,16 @@ function updateVariantLocation(variantId) {
 function bindCardEvents() {
   const container = byId("searchResults");
 
-  container.querySelectorAll("button[data-open-editor]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const variantId = btn.dataset.openEditor;
+  container.querySelectorAll("[data-open-editor]").forEach((row) => {
+    row.addEventListener("click", () => {
+      const variantId = row.dataset.openEditor;
       state.expandedVariantId = state.expandedVariantId === variantId ? null : variantId;
       renderSearchResults();
     });
   });
 
   container.querySelectorAll("input[data-variant-checkbox]").forEach((checkbox) => {
+    checkbox.addEventListener("click", (e) => e.stopPropagation());
     checkbox.addEventListener("change", () => {
       const variantId = checkbox.dataset.variantCheckbox;
       if (checkbox.checked) state.selectedVariantIds.add(variantId);
@@ -239,6 +239,7 @@ function bindCardEvents() {
   });
 
   container.querySelectorAll("form[data-variant-form]").forEach((form) => {
+    form.addEventListener("click", (e) => e.stopPropagation());
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       updateVariantLocation(form.dataset.variantForm);

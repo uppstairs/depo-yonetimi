@@ -120,6 +120,7 @@ button.ghost {
 
 .list {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-top: 8px;
 }
@@ -145,6 +146,7 @@ button.ghost {
 .variant-list {
   margin-top: 10px;
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -153,6 +155,7 @@ button.ghost {
   border-radius: 10px;
   padding: 10px;
   background: #fafbff;
+  cursor: pointer;
 }
 
 .variant-head {
@@ -194,5 +197,17 @@ button.ghost {
 
   .card {
     padding: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .variant-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .variant-list {
+    grid-template-columns: 1fr;
   }
 }
