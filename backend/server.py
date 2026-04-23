@@ -278,9 +278,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def run():
+    import os
+    port = int(os.environ.get("PORT", 8787))
     init_db()
-    server = HTTPServer(("0.0.0.0", 8787), Handler)
-    print("API ready: http://localhost:8787")
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    print(f"API ready: http://0.0.0.0:{port}")
     server.serve_forever()
 
 
