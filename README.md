@@ -78,6 +78,14 @@ API varsayılan olarak `http://localhost:8787` adresinde çalışır.
 - `PATCH /api/variants/{id}/location` → lokasyon değiştirme + hareket geçmişine yazma
 - `GET /api/movements` → ana ekrandaki hareket geçmişi verisi
 
+### Arayüzden DB işlemleri
+
+Ana ekranda **Veritabanı İşlemleri** bölümünden:
+
+- Yeni stok kartı açabilirsin (SKU, marka, ürün adı).
+- Mevcut SKU'ya varyant ekleyebilirsin (barkod, beden, adet, lokasyon).
+- Varyant lokasyon değişiklikleri ve toplu işlemler doğrudan DB'ye yazılır.
+
 ## Demo Kullanıcıları
 
 - ali / 1234

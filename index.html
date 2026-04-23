@@ -46,6 +46,53 @@
 
         <section id="productsView">
           <section class="card">
+            <h2>Veritabanı İşlemleri</h2>
+            <div class="stack">
+              <form id="createStockCardForm" class="stack">
+                <strong>Yeni Stok Kartı Aç</strong>
+                <label>
+                  SKU
+                  <input id="newSku" placeholder="Örn: 3003" required />
+                </label>
+                <label>
+                  Marka
+                  <input id="newBrand" placeholder="Örn: Jack Jones" required />
+                </label>
+                <label>
+                  Ürün Adı
+                  <input id="newProductName" placeholder="Örn: Siyah Hoodie" required />
+                </label>
+                <button type="submit">Stok Kartı Oluştur</button>
+              </form>
+
+              <form id="createVariantForm" class="stack">
+                <strong>Stok Kartına Varyant Ekle</strong>
+                <label>
+                  SKU
+                  <select id="variantSku" required></select>
+                </label>
+                <label>
+                  Barkod
+                  <input id="variantBarcode" placeholder="Örn: 789123" required />
+                </label>
+                <label>
+                  Beden
+                  <input id="variantSize" placeholder="Örn: L" required />
+                </label>
+                <label>
+                  Adet
+                  <input id="variantQuantity" type="number" min="0" value="0" required />
+                </label>
+                <label>
+                  Lokasyon
+                  <select id="variantLocation" required></select>
+                </label>
+                <button type="submit">Varyant Ekle</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="card">
             <h2>Ürün Ara</h2>
             <div class="stack">
               <input id="searchInput" placeholder="SKU, barkod, marka, beden veya ürün adı ara" />

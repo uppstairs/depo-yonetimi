@@ -43,6 +43,16 @@ async function apiPatch(path, payload) {
   return res.json();
 }
 
+async function apiPost(path, payload) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`API hata: ${res.status}`);
+  return res.json();
+}
+
 async function loadDataFromApi() {
   const [catalog, movements, locations] = await Promise.all([
     apiGet("/stock-cards"),
@@ -71,6 +81,12 @@ async function loadDataFromApi() {
 function populateLocationSelects() {
   const options = state.locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("");
   byId("bulkLocation").innerHTML = options;
+  byId("variantLocation").innerHTML = options;
+}
+
+function populateSkuSelect() {
+  const options = state.catalog.map((card) => `<option value="${card.sku}">${card.sku} - ${card.productName}</option>`);
+  byId("variantSku").innerHTML = options.join("");
 }
 
 function matchesQuery(card, query) {
@@ -367,6 +383,7 @@ async function refreshData() {
 
 function renderAll() {
   populateLocationSelects();
+  populateSkuSelect();
   renderSearchResults();
   renderHistory();
   renderBulkUpdateState();
@@ -470,6 +487,53 @@ function bindEvents() {
       renderLocationsPage();
     } catch (error) {
       alert("Toplu güncelleme sırasında API hatası oluştu.");
+    }
+  });
+
+  byId("createStockCardForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const sku = byId("newSku").value.trim();
+    const brand = byId("newBrand").value.trim();
+    const productName = byId("newProductName").value.trim();
+
+    if (!sku || !brand || !productName) {
+      alert("SKU, marka ve ürün adı zorunlu.");
+      return;
+    }
+
+    try {
+      await apiPost("/stock-cards", { sku, brand, productName });
+      byId("createStockCardForm").reset();
+      await refreshData();
+      renderAll();
+      alert("Stok kartı oluşturuldu.");
+    } catch (error) {
+      alert("Stok kartı oluşturulamadı. SKU benzersiz olmalıdır.");
+    }
+  });
+
+  byId("createVariantForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const sku = byId("variantSku").value;
+    const barcode = byId("variantBarcode").value.trim();
+    const size = byId("variantSize").value.trim();
+    const quantity = Number(byId("variantQuantity").value || 0);
+    const location = byId("variantLocation").value;
+    const id = `v_${sku}_${size.toLowerCase()}_${Date.now()}`;
+
+    if (!sku || !barcode || !size || !location) {
+      alert("SKU, barkod, beden ve lokasyon zorunlu.");
+      return;
+    }
+
+    try {
+      await apiPost("/variants", { id, sku, barcode, size, quantity, location });
+      byId("createVariantForm").reset();
+      await refreshData();
+      renderAll();
+      alert("Varyant eklendi.");
+    } catch (error) {
+      alert("Varyant eklenemedi. Barkod benzersiz olmalıdır.");
     }
   });
 }
