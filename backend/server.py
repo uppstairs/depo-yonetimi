@@ -25,10 +25,11 @@ SEED_CARDS = [
         "sku": "1001",
         "brand": "Jack Jones",
         "product_name": "Beyaz Tişört",
+        "location": "A1",
         "variants": [
-            {"id": "v1001-xs", "barcode": "123456", "size": "XS", "quantity": 6, "location": "A1"},
-            {"id": "v1001-s", "barcode": "234561", "size": "S", "quantity": 8, "location": "A2"},
-            {"id": "v1001-m", "barcode": "345612", "size": "M", "quantity": 5, "location": "B1"},
+            {"id": "v1001-xs", "barcode": "123456", "size": "XS", "quantity": 6},
+            {"id": "v1001-s", "barcode": "234561", "size": "S", "quantity": 8},
+            {"id": "v1001-m", "barcode": "345612", "size": "M", "quantity": 5},
         ],
     }
 ]
@@ -58,17 +59,17 @@ def init_db():
 
         for card in SEED_CARDS:
             conn.execute(
-                "INSERT OR IGNORE INTO stock_cards(sku,brand,product_name) VALUES (?,?,?)",
-                (card["sku"], card["brand"], card["product_name"]),
+                "INSERT OR IGNORE INTO stock_cards(sku,brand,product_name,location_code) VALUES (?,?,?,?)",
+                (card["sku"], card["brand"], card["product_name"], card["location"]),
             )
             stock_card = conn.execute("SELECT id FROM stock_cards WHERE sku = ?", (card["sku"],)).fetchone()
             for v in card["variants"]:
                 conn.execute(
                     """
-                    INSERT OR IGNORE INTO variants(id, stock_card_id, barcode, size, quantity, location_code)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT OR IGNORE INTO variants(id, stock_card_id, barcode, size, quantity)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
-                    (v["id"], stock_card["id"], v["barcode"], v["size"], v["quantity"], v["location"]),
+                    (v["id"], stock_card["id"], v["barcode"], v["size"], v["quantity"]),
                 )
 
 
@@ -103,11 +104,11 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/stock-cards":
             with get_db() as conn:
-                cards = conn.execute("SELECT id, sku, brand, product_name FROM stock_cards ORDER BY sku").fetchall()
+                cards = conn.execute("SELECT id, sku, brand, product_name, location_code FROM stock_cards ORDER BY sku").fetchall()
                 payload = []
                 for c in cards:
                     variants = conn.execute(
-                        "SELECT id, barcode, size, quantity, location_code FROM variants WHERE stock_card_id = ? ORDER BY size",
+                        "SELECT id, barcode, size, quantity FROM variants WHERE stock_card_id = ? ORDER BY size",
                         (c["id"],),
                     ).fetchall()
                     payload.append(
@@ -116,13 +117,13 @@ class Handler(BaseHTTPRequestHandler):
                             "sku": c["sku"],
                             "brand": c["brand"],
                             "productName": c["product_name"],
+                            "location": c["location_code"],
                             "variants": [
                                 {
                                     "id": v["id"],
                                     "barcode": v["barcode"],
                                     "size": v["size"],
                                     "quantity": v["quantity"],
-                                    "location": v["location_code"],
                                 }
                                 for v in variants
                             ],
@@ -134,7 +135,7 @@ class Handler(BaseHTTPRequestHandler):
             with get_db() as conn:
                 movements = conn.execute(
                     """
-                    SELECT id, variant_id, sku, product_name, brand, barcode, size, quantity,
+                    SELECT id, stock_card_id, variant_id, sku, product_name, brand, barcode, size, quantity,
                            from_location, to_location, changed_by, note, created_at
                     FROM movements
                     ORDER BY datetime(created_at) DESC
@@ -160,19 +161,20 @@ class Handler(BaseHTTPRequestHandler):
             product_name = payload.get("productName")
             if not sku or not brand or not product_name:
                 return self._json_response(400, {"error": "sku, brand, productName zorunlu"})
+            location = payload.get("location", "A1")
 
             with get_db() as conn:
                 cur = conn.execute(
-                    "INSERT INTO stock_cards(sku, brand, product_name) VALUES (?,?,?)",
-                    (sku, brand, product_name),
+                    "INSERT INTO stock_cards(sku, brand, product_name, location_code) VALUES (?,?,?,?)",
+                    (sku, brand, product_name, location),
                 )
-            return self._json_response(201, {"id": cur.lastrowid, "sku": sku, "brand": brand, "productName": product_name})
+            return self._json_response(201, {"id": cur.lastrowid, "sku": sku, "brand": brand, "productName": product_name, "location": location})
 
         if path == "/api/variants":
             payload = self._read_json()
-            required = ["id", "sku", "barcode", "size", "quantity", "location"]
+            required = ["id", "sku", "barcode", "size", "quantity"]
             if any(k not in payload for k in required):
-                return self._json_response(400, {"error": "id, sku, barcode, size, quantity, location zorunlu"})
+                return self._json_response(400, {"error": "id, sku, barcode, size, quantity zorunlu"})
 
             with get_db() as conn:
                 card = conn.execute("SELECT id FROM stock_cards WHERE sku = ?", (payload["sku"],)).fetchone()
@@ -181,10 +183,10 @@ class Handler(BaseHTTPRequestHandler):
 
                 conn.execute(
                     """
-                    INSERT INTO variants(id, stock_card_id, barcode, size, quantity, location_code)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO variants(id, stock_card_id, barcode, size, quantity)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
-                    (payload["id"], card["id"], payload["barcode"], payload["size"], payload["quantity"], payload["location"]),
+                    (payload["id"], card["id"], payload["barcode"], payload["size"], payload["quantity"]),
                 )
             return self._json_response(201, {"ok": True})
 
@@ -192,10 +194,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PATCH(self):
         path = urlparse(self.path).path
-        if not path.startswith("/api/variants/") or not path.endswith("/location"):
+        if not path.startswith("/api/stock-cards/") or not path.endswith("/location"):
             return self._json_response(404, {"error": "Not found"})
 
-        variant_id = path.split("/")[3]
+        sku = path.split("/")[3]
         payload = self._read_json()
         new_location = payload.get("toLocation")
         changed_by = payload.get("changedBy", "Bilinmeyen")
@@ -207,36 +209,35 @@ class Handler(BaseHTTPRequestHandler):
         with get_db() as conn:
             row = conn.execute(
                 """
-                SELECT v.id, v.location_code, v.barcode, v.size, v.quantity,
-                       sc.sku, sc.brand, sc.product_name
-                FROM variants v
-                JOIN stock_cards sc ON sc.id = v.stock_card_id
-                WHERE v.id = ?
+                SELECT sc.id, sc.location_code, sc.sku, sc.brand, sc.product_name
+                FROM stock_cards sc
+                WHERE sc.sku = ?
                 """,
-                (variant_id,),
+                (sku,),
             ).fetchone()
 
             if not row:
-                return self._json_response(404, {"error": "Varyant bulunamadı"})
+                return self._json_response(404, {"error": "Stok kartı bulunamadı"})
 
-            conn.execute("UPDATE variants SET location_code = ?, updated_at = datetime('now') WHERE id = ?", (new_location, variant_id))
+            conn.execute("UPDATE stock_cards SET location_code = ? WHERE id = ?", (new_location, row["id"]))
 
-            movement_id = f"m_{int(datetime.now().timestamp() * 1000)}_{variant_id}"
+            movement_id = f"m_{int(datetime.now().timestamp() * 1000)}_{row['id']}"
             conn.execute(
                 """
-                INSERT INTO movements(id, variant_id, sku, product_name, brand, barcode, size, quantity,
+                INSERT INTO movements(id, stock_card_id, variant_id, sku, product_name, brand, barcode, size, quantity,
                                       from_location, to_location, changed_by, note, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     movement_id,
-                    variant_id,
+                    row["id"],
+                    None,
                     row["sku"],
                     row["product_name"],
                     row["brand"],
-                    row["barcode"],
-                    row["size"],
-                    row["quantity"],
+                    None,
+                    None,
+                    None,
                     row["location_code"],
                     new_location,
                     changed_by,

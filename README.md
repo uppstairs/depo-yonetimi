@@ -75,7 +75,7 @@ API varsayılan olarak `http://localhost:8787` adresinde çalışır.
 - `GET /api/stock-cards` → stok kartları + varyantlar
 - `POST /api/stock-cards` → yeni stok kartı açma
 - `POST /api/variants` → stok kartına varyant ekleme
-- `PATCH /api/variants/{id}/location` → lokasyon değiştirme + hareket geçmişine yazma
+- `PATCH /api/stock-cards/{sku}/location` → stok kartı lokasyonu değiştirme + hareket geçmişine yazma
 - `GET /api/movements` → ana ekrandaki hareket geçmişi verisi
 
 ### Arayüzden DB işlemleri
@@ -83,13 +83,15 @@ API varsayılan olarak `http://localhost:8787` adresinde çalışır.
 Arayüzde ayrı bir **DB İşlemleri** sekmesi bulunur. Bu sekmeden:
 
 - Yeni stok kartı açabilirsin (SKU, marka, ürün adı).
-- Mevcut SKU'ya varyant ekleyebilirsin (barkod, beden, adet, lokasyon).
-- Varyant lokasyon değişiklikleri ve toplu işlemler doğrudan DB'ye yazılır.
+- Mevcut SKU'ya varyant ekleyebilirsin (barkod, beden, adet). Varyant eklemek zorunlu değildir.
+- Lokasyon değişiklikleri stok kartı seviyesinde tutulur ve doğrudan DB'ye yazılır.
 - Excel için CSV şablonu indirip toplu içe aktar yapabilirsin.
 
 ### Excel/CSV şablon sütunları
 
 `sku,brand,productName,barcode,size,quantity,location`
+
+> `location` stok kartı lokasyonudur. `barcode/size/quantity` alanları boş bırakılırsa sadece ana stok kartı açılır.
 
 ## Demo Kullanıcıları
 

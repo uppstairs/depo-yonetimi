@@ -10,9 +10,9 @@ const seedUsers = [
 
 const state = {
   currentUser: null,
-  expandedVariantId: null,
+  expandedCardSku: null,
   selectionMode: false,
-  selectedVariantIds: new Set(),
+  selectedSkus: new Set(),
   catalog: [],
   movements: [],
   locations: [],
@@ -81,7 +81,7 @@ async function loadDataFromApi() {
 function populateLocationSelects() {
   const options = state.locations.map((loc) => `<option value="${loc}">${loc}</option>`).join("");
   byId("bulkLocation").innerHTML = options;
-  byId("variantLocation").innerHTML = options;
+  byId("newCardLocation").innerHTML = options;
 }
 
 function populateSkuSelect() {
@@ -93,8 +93,8 @@ function downloadImportTemplate() {
   const template = [
     "sku,brand,productName,barcode,size,quantity,location",
     "1001,Jack Jones,Beyaz Tişört,123456,XS,6,A1",
-    "1001,Jack Jones,Beyaz Tişört,234561,S,8,A2",
-    "1001,Jack Jones,Beyaz Tişört,345612,M,5,B1",
+    "1001,Jack Jones,Beyaz Tişört,234561,S,8,A1",
+    "3003,OnlyBrand,Temel Ürün,,,,B2",
   ].join("\\n");
 
   const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
@@ -126,7 +126,7 @@ function matchesQuery(card, query) {
   if (!query) return true;
   const cardText = `${card.sku} ${card.brand} ${card.productName}`.toLocaleLowerCase("tr-TR");
   const variantText = card.variants
-    .map((v) => `${v.barcode} ${v.size} ${v.location} ${v.quantity}`)
+    .map((v) => `${v.barcode} ${v.size} ${v.quantity}`)
     .join(" ")
     .toLocaleLowerCase("tr-TR");
   return `${cardText} ${variantText}`.includes(query);
@@ -144,50 +144,47 @@ function renderSearchResults() {
 
   container.innerHTML = cards
     .map((card) => {
+      const checked = state.selectedSkus.has(card.sku) ? "checked" : "";
+      const editorOpen = state.expandedCardSku === card.sku;
+      const locationOptions = state.locations
+        .map((loc) => `<option value="${loc}" ${loc === card.location ? "selected" : ""}>${loc}</option>`)
+        .join("");
+
       const variantsHtml = card.variants
         .map((variant) => {
-          const checked = state.selectedVariantIds.has(variant.id) ? "checked" : "";
-          const editorOpen = state.expandedVariantId === variant.id;
-          const options = state.locations
-            .map(
-              (loc) => `<option value="${loc}" ${loc === variant.location ? "selected" : ""}>${loc}</option>`
-            )
-            .join("");
-
           return `
-            <div class="variant-row" data-open-editor="${variant.id}">
-              <div class="variant-head">
-                <div>
-                  <span><strong>Barkod:</strong> ${variant.barcode}</span><br>
-                  <span class="muted"><strong>Beden:</strong> ${variant.size} • <strong>Adet:</strong> ${variant.quantity} • <strong>Lokasyon:</strong> ${variant.location}</span>
-                </div>
-                ${state.selectionMode ? `<input type="checkbox" data-variant-checkbox="${variant.id}" ${checked} />` : ""}
+            <div class="variant-row">
+              <div>
+                <span><strong>Barkod:</strong> ${variant.barcode}</span><br>
+                <span class="muted"><strong>Beden:</strong> ${variant.size} • <strong>Adet:</strong> ${variant.quantity}</span>
               </div>
-              ${
-                editorOpen
-                  ? `<form class="stack inline-editor" data-variant-form="${variant.id}">
-                      <label>
-                        Yeni Lokasyon
-                        <select data-variant-location="${variant.id}" required>${options}</select>
-                      </label>
-                      <label>
-                        Not
-                        <input data-variant-note="${variant.id}" placeholder="Opsiyonel" />
-                      </label>
-                      <button type="submit">Varyant Lokasyonunu Güncelle</button>
-                    </form>`
-                  : ""
-              }
             </div>
           `;
         })
         .join("");
 
       return `
-        <article class="item">
+        <article class="item" data-open-editor="${card.sku}">
           <strong>SKU: ${card.sku}</strong><br>
           <span class="muted">Marka: ${card.brand}</span><br>
-          <span class="muted">Ürün Adı: ${card.productName}</span>
+          <span class="muted">Ürün Adı: ${card.productName}</span><br>
+          <span class="muted"><strong>Lokasyon:</strong> ${card.location}</span>
+          ${state.selectionMode ? `<input type="checkbox" data-sku-checkbox="${card.sku}" ${checked} />` : ""}
+          ${
+            editorOpen
+              ? `<form class="stack inline-editor" data-card-form="${card.sku}">
+                  <label>
+                    Yeni Lokasyon
+                    <select data-card-location="${card.sku}" required>${locationOptions}</select>
+                  </label>
+                  <label>
+                    Not
+                    <input data-card-note="${card.sku}" placeholder="Opsiyonel" />
+                  </label>
+                  <button type="submit">Stok Kartı Lokasyonunu Güncelle</button>
+                </form>`
+              : ""
+          }
           <div class="variant-list">${variantsHtml}</div>
         </article>
       `;
@@ -197,17 +194,9 @@ function renderSearchResults() {
   bindCardEvents();
 }
 
-function findVariantById(variantId) {
-  for (const card of state.catalog) {
-    const variant = card.variants.find((v) => v.id === variantId);
-    if (variant) return { card, variant };
-  }
-  return null;
-}
-
-async function updateVariantLocation(variantId) {
-  const locationInput = document.querySelector(`[data-variant-location="${variantId}"]`);
-  const noteInput = document.querySelector(`[data-variant-note="${variantId}"]`);
+async function updateStockCardLocation(sku) {
+  const locationInput = document.querySelector(`[data-card-location="${sku}"]`);
+  const noteInput = document.querySelector(`[data-card-note="${sku}"]`);
   const newLocation = locationInput?.value;
   const note = noteInput?.value?.trim() || "";
 
@@ -217,13 +206,13 @@ async function updateVariantLocation(variantId) {
   }
 
   try {
-    await apiPatch(`/variants/${variantId}/location`, {
+    await apiPatch(`/stock-cards/${sku}/location`, {
       toLocation: newLocation,
       changedBy: state.currentUser?.fullName || "Bilinmeyen",
       note,
     });
     await refreshData();
-    state.expandedVariantId = null;
+    state.expandedCardSku = null;
     renderAll();
   } catch (error) {
     alert("Lokasyon güncellenemedi. API bağlantısını kontrol edin.");
@@ -235,27 +224,27 @@ function bindCardEvents() {
 
   container.querySelectorAll("[data-open-editor]").forEach((row) => {
     row.addEventListener("click", () => {
-      const variantId = row.dataset.openEditor;
-      state.expandedVariantId = state.expandedVariantId === variantId ? null : variantId;
+      const sku = row.dataset.openEditor;
+      state.expandedCardSku = state.expandedCardSku === sku ? null : sku;
       renderSearchResults();
     });
   });
 
-  container.querySelectorAll("input[data-variant-checkbox]").forEach((checkbox) => {
+  container.querySelectorAll("input[data-sku-checkbox]").forEach((checkbox) => {
     checkbox.addEventListener("click", (e) => e.stopPropagation());
     checkbox.addEventListener("change", () => {
-      const variantId = checkbox.dataset.variantCheckbox;
-      if (checkbox.checked) state.selectedVariantIds.add(variantId);
-      else state.selectedVariantIds.delete(variantId);
+      const sku = checkbox.dataset.skuCheckbox;
+      if (checkbox.checked) state.selectedSkus.add(sku);
+      else state.selectedSkus.delete(sku);
       renderBulkUpdateState();
     });
   });
 
-  container.querySelectorAll("form[data-variant-form]").forEach((form) => {
+  container.querySelectorAll("form[data-card-form]").forEach((form) => {
     form.addEventListener("click", (e) => e.stopPropagation());
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      updateVariantLocation(form.dataset.variantForm);
+      updateStockCardLocation(form.dataset.cardForm);
     });
   });
 }
@@ -281,9 +270,9 @@ function renderHistory() {
   container.innerHTML = filtered
     .map(
       (m) => `
-      <article class="item">
+        <article class="item">
         <strong>SKU: ${m.sku} • ${m.productName}</strong><br>
-        <span class="muted">Marka: ${m.brand} • Barkod: ${m.barcode} • Beden: ${m.size} • Adet: ${m.quantity}</span><br>
+        <span class="muted">Marka: ${m.brand} • Barkod: ${m.barcode || "-"} • Beden: ${m.size || "-"} • Adet: ${m.quantity ?? "-"}</span><br>
         <span>${m.fromLocation} → ${m.toLocation}</span><br>
         <span class="muted">${new Date(m.createdAt).toLocaleString("tr-TR")} • ${m.changedBy}</span>
         ${m.note ? `<br><span class="muted">Not: ${m.note}</span>` : ""}
@@ -305,23 +294,19 @@ function renderLocationsPage() {
 
   container.innerHTML = locations
     .map((locationCode) => {
-      const variantsInLocation = state.catalog.flatMap((card) =>
-        card.variants
-          .filter((v) => v.location === locationCode)
-          .map((v) => ({ ...v, sku: card.sku, brand: card.brand, productName: card.productName }))
-      );
+      const cardsInLocation = state.catalog.filter((card) => card.location === locationCode);
 
       return `
         <article class="item">
           <strong>${locationCode}</strong><br>
-          <span class="muted">Toplam varyant: ${variantsInLocation.length}</span>
+          <span class="muted">Toplam stok kartı: ${cardsInLocation.length}</span>
           <div class="location-products">
             ${
-              variantsInLocation.length
-                ? variantsInLocation
+              cardsInLocation.length
+                ? cardsInLocation
                     .map(
-                      (v) =>
-                        `<div>• SKU ${v.sku} - ${v.productName} • ${v.brand} • Barkod ${v.barcode} • Beden ${v.size} • Adet ${v.quantity}</div>`
+                      (c) =>
+                        `<div>• SKU ${c.sku} - ${c.productName} • ${c.brand} • Varyant: ${c.variants.length}</div>`
                     )
                     .join("")
                 : '<span class="muted">Bu lokasyonda ürün yok.</span>'
@@ -334,8 +319,8 @@ function renderLocationsPage() {
 }
 
 function renderBulkUpdateState() {
-  const count = state.selectedVariantIds.size;
-  byId("selectedCount").textContent = `${count} varyant seçili`;
+  const count = state.selectedSkus.size;
+  byId("selectedCount").textContent = `${count} stok kartı seçili`;
   byId("bulkUpdateCard").classList.toggle("hidden", !state.selectionMode);
 }
 
@@ -475,9 +460,9 @@ function bindEvents() {
 
   byId("logoutBtn").addEventListener("click", () => {
     state.currentUser = null;
-    state.expandedVariantId = null;
+    state.expandedCardSku = null;
     state.selectionMode = false;
-    state.selectedVariantIds.clear();
+    state.selectedSkus.clear();
     byId("loginForm").reset();
     showLogin();
   });
@@ -485,7 +470,7 @@ function bindEvents() {
   byId("selectionModeBtn").addEventListener("click", () => {
     state.selectionMode = !state.selectionMode;
     byId("selectionModeBtn").textContent = state.selectionMode ? "Seçim Modu: Açık" : "Seçim Modu";
-    if (!state.selectionMode) state.selectedVariantIds.clear();
+    if (!state.selectionMode) state.selectedSkus.clear();
     renderSearchResults();
     renderBulkUpdateState();
   });
@@ -502,9 +487,9 @@ function bindEvents() {
   byId("bulkUpdateForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const selectedIds = Array.from(state.selectedVariantIds);
+    const selectedIds = Array.from(state.selectedSkus);
     if (!selectedIds.length) {
-      alert("Önce en az bir varyant seçin.");
+      alert("Önce en az bir stok kartı seçin.");
       return;
     }
 
@@ -512,8 +497,8 @@ function bindEvents() {
     const note = byId("bulkNote").value.trim();
 
     try {
-      for (const variantId of selectedIds) {
-        await apiPatch(`/variants/${variantId}/location`, {
+      for (const sku of selectedIds) {
+        await apiPatch(`/stock-cards/${sku}/location`, {
           toLocation: targetLocation,
           changedBy: state.currentUser?.fullName || "Bilinmeyen",
           note,
@@ -521,7 +506,7 @@ function bindEvents() {
       }
 
       await refreshData();
-      state.selectedVariantIds.clear();
+      state.selectedSkus.clear();
       byId("bulkUpdateForm").reset();
       renderAll();
       renderLocationsPage();
@@ -535,14 +520,15 @@ function bindEvents() {
     const sku = byId("newSku").value.trim();
     const brand = byId("newBrand").value.trim();
     const productName = byId("newProductName").value.trim();
+    const location = byId("newCardLocation").value;
 
-    if (!sku || !brand || !productName) {
-      alert("SKU, marka ve ürün adı zorunlu.");
+    if (!sku || !brand || !productName || !location) {
+      alert("SKU, marka, ürün adı ve lokasyon zorunlu.");
       return;
     }
 
     try {
-      await apiPost("/stock-cards", { sku, brand, productName });
+      await apiPost("/stock-cards", { sku, brand, productName, location });
       byId("createStockCardForm").reset();
       await refreshData();
       renderAll();
@@ -558,16 +544,15 @@ function bindEvents() {
     const barcode = byId("variantBarcode").value.trim();
     const size = byId("variantSize").value.trim();
     const quantity = Number(byId("variantQuantity").value || 0);
-    const location = byId("variantLocation").value;
     const id = `v_${sku}_${size.toLowerCase()}_${Date.now()}`;
 
-    if (!sku || !barcode || !size || !location) {
-      alert("SKU, barkod, beden ve lokasyon zorunlu.");
+    if (!sku || !barcode || !size) {
+      alert("SKU, barkod ve beden zorunlu.");
       return;
     }
 
     try {
-      await apiPost("/variants", { id, sku, barcode, size, quantity, location });
+      await apiPost("/variants", { id, sku, barcode, size, quantity });
       byId("createVariantForm").reset();
       await refreshData();
       renderAll();
@@ -605,17 +590,18 @@ function bindEvents() {
         const quantity = Number(row.quantity || 0);
         const location = (row.location || "").trim();
 
-        if (!sku || !brand || !productName || !barcode || !size || !location) continue;
+        if (!sku || !brand || !productName || !location) continue;
 
         if (!createdSkus.has(sku)) {
           try {
-            await apiPost("/stock-cards", { sku, brand, productName });
+            await apiPost("/stock-cards", { sku, brand, productName, location });
           } catch (_error) {
             // SKU zaten varsa import devam eder.
           }
           createdSkus.add(sku);
         }
 
+        if (!barcode || !size) continue;
         const variantId = `v_${sku}_${size.toLowerCase()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         try {
           await apiPost("/variants", {
