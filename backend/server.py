@@ -19,7 +19,7 @@ SEED_USERS = [
     ("can", "1234", "Can"),
 ]
 
-SEED_LOCATIONS = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2", "D3"]
+SEED_LOCATIONS = ["K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12", "K13", "K14", "K15"]
 
 SEED_CARDS = [
     {
