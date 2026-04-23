@@ -45,6 +45,7 @@
           <button id="databaseTabBtn" class="tab" type="button">DB İşlemleri</button>
         </div>
 
+        <!-- ÜRÜNLER -->
         <section id="productsView">
           <section class="card">
             <h2>Ürün Ara</h2>
@@ -81,6 +82,7 @@
           </section>
         </section>
 
+        <!-- LOKASYONLAR -->
         <section id="locationsView" class="hidden">
           <section class="card">
             <h2>Lokasyona Göre Ürünler</h2>
@@ -89,23 +91,25 @@
           </section>
         </section>
 
+        <!-- DB İŞLEMLERİ -->
         <section id="databaseView" class="hidden">
           <section class="card">
             <h2>Veritabanı İşlemleri</h2>
             <div class="stack">
+
               <form id="createStockCardForm" class="stack">
                 <strong>Yeni Stok Kartı Aç</strong>
                 <label>
                   SKU
-                  <input id="newSku" placeholder="Örn: 3003" required />
+                  <input id="newSku" required />
                 </label>
                 <label>
                   Marka
-                  <input id="newBrand" placeholder="Örn: Jack Jones" required />
+                  <input id="newBrand" required />
                 </label>
                 <label>
                   Ürün Adı
-                  <input id="newProductName" placeholder="Örn: Siyah Hoodie" required />
+                  <input id="newProductName" required />
                 </label>
                 <label>
                   Lokasyon
@@ -115,33 +119,35 @@
               </form>
 
               <form id="createVariantForm" class="stack">
-                <strong>Stok Kartına Varyant Ekle</strong>
+                <strong>Varyant Ekle</strong>
                 <label>
                   SKU
                   <select id="variantSku" required></select>
                 </label>
                 <label>
                   Barkod
-                  <input id="variantBarcode" placeholder="Örn: 789123" required />
+                  <input id="variantBarcode" required />
                 </label>
                 <label>
                   Beden
-                  <input id="variantSize" placeholder="Örn: L" required />
+                  <input id="variantSize" required />
                 </label>
                 <label>
                   Adet
-                  <input id="variantQuantity" type="number" min="0" value="0" required />
+                  <input id="variantQuantity" type="number" value="0" required />
                 </label>
                 <button type="submit">Varyant Ekle</button>
               </form>
 
               <form id="importExcelForm" class="stack">
-                <strong>Excel/CSV ile Toplu İçe Aktar</strong>
-                <p class="hint">Şablonu indirip Excel'de doldurun, CSV (UTF-8) olarak kaydedip içe aktarın.</p>
-                <button id="downloadTemplateBtn" type="button" class="ghost">Şablon İndir (CSV)</button>
+                <strong>CSV İçe Aktar</strong>
+                <button id="downloadTemplateBtn" type="button" class="ghost">
+                  Şablon İndir
+                </button>
                 <input id="importFileInput" type="file" accept=".csv" required />
                 <button type="submit">İçe Aktar</button>
               </form>
+
             </div>
           </section>
         </section>
