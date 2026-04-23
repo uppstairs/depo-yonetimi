@@ -9,11 +9,56 @@ const seedUsers = [
 const seedLocations = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2", "D3"];
 
 const seedProducts = [
-  { id: "p1", sku: "SKU-1001", barcode: "869000000001", name: "Kahve Filtresi", currentLocation: "A1" },
-  { id: "p2", sku: "SKU-1002", barcode: "869000000002", name: "Termos 500ml", currentLocation: "A2" },
-  { id: "p3", sku: "SKU-1003", barcode: "869000000003", name: "Cam Bardak Seti", currentLocation: "B1" },
-  { id: "p4", sku: "SKU-1004", barcode: "869000000004", name: "Masa Lambası", currentLocation: "C3" },
-  { id: "p5", sku: "SKU-1005", barcode: "869000000005", name: "Defter A5", currentLocation: "D2" },
+  {
+    id: "p1",
+    stockCode: "STK-ELB-001",
+    sku: "SKU-1001-S",
+    barcode: "869000000001",
+    name: "Basic Tişört",
+    size: "S",
+    brand: "Northline",
+    currentLocation: "A1",
+  },
+  {
+    id: "p2",
+    stockCode: "STK-ELB-001",
+    sku: "SKU-1001-M",
+    barcode: "869000000002",
+    name: "Basic Tişört",
+    size: "M",
+    brand: "Northline",
+    currentLocation: "A2",
+  },
+  {
+    id: "p3",
+    stockCode: "STK-ELB-001",
+    sku: "SKU-1001-L",
+    barcode: "869000000003",
+    name: "Basic Tişört",
+    size: "L",
+    brand: "Northline",
+    currentLocation: "B1",
+  },
+  {
+    id: "p4",
+    stockCode: "STK-PNT-014",
+    sku: "SKU-2001-32",
+    barcode: "869000000004",
+    name: "Slim Jean",
+    size: "32",
+    brand: "BlueOak",
+    currentLocation: "C3",
+  },
+  {
+    id: "p5",
+    stockCode: "STK-PNT-014",
+    sku: "SKU-2001-34",
+    barcode: "869000000005",
+    name: "Slim Jean",
+    size: "34",
+    brand: "BlueOak",
+    currentLocation: "D2",
+  },
 ];
 
 const state = {
@@ -80,7 +125,9 @@ function renderSearchResults() {
   const filtered = !query
     ? products
     : products.filter((p) =>
-        `${p.name} ${p.sku} ${p.barcode}`.toLocaleLowerCase("tr-TR").includes(query)
+        `${p.name} ${p.sku} ${p.stockCode} ${p.brand} ${p.size} ${p.barcode}`
+          .toLocaleLowerCase("tr-TR")
+          .includes(query)
       );
 
   const container = byId("searchResults");
@@ -118,6 +165,8 @@ function renderSearchResults() {
             ${state.selectionMode ? `<input type="checkbox" data-checkbox-id="${p.id}" ${checked} />` : ""}
           </div>
           <span class="muted">${p.sku} • Barkod: ${p.barcode}</span><br>
+          <span class="muted">Stok Kartı: ${p.stockCode} • Marka: ${p.brand}</span><br>
+          <span class="muted">Beden: ${p.size}</span><br>
           <span class="muted">Lokasyon: ${p.currentLocation}</span>
           <button type="button" data-product-id="${p.id}">Değiştir</button>
           ${inlineEditor}
@@ -204,11 +253,16 @@ function renderHistory() {
         ...m,
         productName: product?.name || "Silinmiş ürün",
         sku: product?.sku || "-",
+        stockCode: product?.stockCode || "-",
+        size: product?.size || "-",
+        brand: product?.brand || "-",
       };
     })
     .filter((m) => {
       if (!filter) return true;
-      return `${m.productName} ${m.sku}`.toLocaleLowerCase("tr-TR").includes(filter);
+      return `${m.productName} ${m.sku} ${m.stockCode} ${m.brand} ${m.size}`
+        .toLocaleLowerCase("tr-TR")
+        .includes(filter);
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -223,7 +277,8 @@ function renderHistory() {
       (m) => `
       <article class="item">
         <strong>${m.productName}</strong><br>
-        <span class="muted">${m.sku}</span><br>
+        <span class="muted">${m.sku} • Stok Kartı: ${m.stockCode}</span><br>
+        <span class="muted">Marka: ${m.brand} • Beden: ${m.size}</span><br>
         <span>${m.fromLocation} → ${m.toLocation}</span><br>
         <span class="muted">${new Date(m.createdAt).toLocaleString("tr-TR")} • ${m.changedBy}</span>
         ${m.note ? `<br><span class="muted">Not: ${m.note}</span>` : ""}
@@ -256,7 +311,12 @@ function renderLocationsPage() {
           <div class="location-products">
             ${
               inLocation.length
-                ? inLocation.map((p) => `<div>• ${p.name} (${p.sku})</div>`).join("")
+                ? inLocation
+                    .map(
+                      (p) =>
+                        `<div>• ${p.name} (${p.sku}) • ${p.brand} • Beden ${p.size} • ${p.stockCode}</div>`
+                    )
+                    .join("")
                 : '<span class="muted">Bu lokasyonda ürün yok.</span>'
             }
           </div>
