@@ -344,16 +344,22 @@ function showTab(tabName) {
   const locationsTabBtn = byId("locationsTabBtn");
   const databaseTabBtn = byId("databaseTabBtn");
 
+  // Main branch ile UI branch'i tam aynı değilse (ör. database tab yoksa)
+  // login sonrası burada patlayıp uygulama açılmıyor gibi görünebilir.
+  if (!productsView || !locationsView || !productsTabBtn || !locationsTabBtn) {
+    return;
+  }
+
   const productsActive = tabName === "products";
   const locationsActive = tabName === "locations";
   const databaseActive = tabName === "database";
   productsView.classList.toggle("hidden", !productsActive);
   locationsView.classList.toggle("hidden", !locationsActive);
-  databaseView.classList.toggle("hidden", !databaseActive);
+  if (databaseView) databaseView.classList.toggle("hidden", !databaseActive);
 
   productsTabBtn.classList.toggle("active", productsActive);
   locationsTabBtn.classList.toggle("active", locationsActive);
-  databaseTabBtn.classList.toggle("active", databaseActive);
+  if (databaseTabBtn) databaseTabBtn.classList.toggle("active", databaseActive);
 
   if (locationsActive) renderLocationsPage();
 }
@@ -450,7 +456,10 @@ function showLogin() {
 
 function bindEvents() {
   const loginForm = byId("loginForm");
-  if (!loginForm) return;
+  if (!loginForm) {
+    console.error("loginForm bulunamadı. HTML ile app.js eşleşmiyor olabilir.");
+    return;
+  }
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -637,11 +646,17 @@ function bindEvents() {
 }
 
 function main() {
+  if (!byId("loginScreen") || !byId("appScreen") || !byId("loginForm")) {
+    console.error("Kritik UI elemanları bulunamadı. index.html merge edilmiş ama bazı id'ler eksik olabilir.");
+    alert("Uygulama dosyaları tam eşleşmiyor. Lütfen cache temizleyip tekrar deneyin veya index.html merge durumunu kontrol edin.");
+    return;
+  }
   bindEvents();
   showLogin();
 }
 
-main();
-  if (!productsView || !locationsView || !databaseView || !productsTabBtn || !locationsTabBtn || !databaseTabBtn) {
-    return;
-  }
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", main);
+} else {
+  main();
+}
