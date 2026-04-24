@@ -133,7 +133,7 @@ function downloadImportTemplate() {
     "1001,Jack Jones,Beyaz Tişört,123456,XS,6,A1",
     "1001,Jack Jones,Beyaz Tişört,234561,S,8,A1",
     "3003,OnlyBrand,Temel Ürün,,,,B2",
-  ].join("\\n");
+  ].join("\n");
 
   const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -147,7 +147,7 @@ function downloadImportTemplate() {
 }
 
 function parseCsvRows(csvText) {
-  const lines = csvText.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   if (lines.length < 2) return [];
   const headers = lines[0].split(",").map((h) => h.trim());
   return lines.slice(1).map((line) => {
