@@ -74,11 +74,12 @@ CREATE INDEX IF NOT EXISTS idx_movements_created_at ON movements(created_at);
 
 
 SEED_USERS = [
-    ("ali", "1234", "Ali"),
-    ("ayse", "1234", "Ayşe"),
-    ("mehmet", "1234", "Mehmet"),
-    ("zeynep", "1234", "Zeynep"),
-    ("can", "1234", "Can"),
+    ("taha", "kilinc1968", "Taha"),
+    ("sefa", "kilinc1968", "Sefa"),
+    ("vefa", "kilinc1968", "Vefa"),
+    ("hacer", "kilinc1968", "Hacer"),
+    ("nedim", "kilinc1968", "Nedim"),
+    ("yusuf", "kilinc1968", "Yusuf"),
 ]
 
 SEED_LOCATIONS = ["K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12", "K13", "K14", "K15"]
