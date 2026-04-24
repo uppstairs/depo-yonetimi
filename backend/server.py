@@ -146,7 +146,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
@@ -269,7 +269,20 @@ class Handler(BaseHTTPRequestHandler):
             return self._json_response(201, {"ok": True})
 
         return self._json_response(404, {"error": "Not found"})
+    
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        if not path.startswith("/api/stock-cards/"):
+            return self._json_response(404, {"error": "Not found"})
 
+        sku = path.split("/")[3]
+        with get_db() as conn:
+            row = conn.execute("SELECT id FROM stock_cards WHERE sku = ?", (sku,)).fetchone()
+            if not row:
+                return self._json_response(404, {"error": "Stok kartı bulunamadı"})
+            conn.execute("DELETE FROM stock_cards WHERE sku = ?", (sku,))
+        return self._json_response(200, {"ok": True})
+      
     def do_PATCH(self):
         path = urlparse(self.path).path
         if not path.startswith("/api/stock-cards/") or not path.endswith("/location"):
