@@ -9,11 +9,12 @@ const API_BASE_CANDIDATES = isLocalHost
 let resolvedApiBase = null;
 
 const seedUsers = [
-  { username: "ali", password: "1234", fullName: "Ali" },
-  { username: "ayse", password: "1234", fullName: "Ayşe" },
-  { username: "mehmet", password: "1234", fullName: "Mehmet" },
-  { username: "zeynep", password: "1234", fullName: "Zeynep" },
-  { username: "can", password: "1234", fullName: "Can" },
+  { username: "taha", password: "kilinc1968", fullName: "Taha" },
+  { username: "sefa", password: "kilinc1968", fullName: "Sefa" },
+  { username: "vefa", password: "kilinc1968", fullName: "Vefa" },
+  { username: "hacer", password: "kilinc1968", fullName: "Hacer" },
+  { username: "nedim", password: "kilinc1968", fullName: "Nedim" },
+  { username: "yusuf", password: "kilinc1968", fullName: "Yusuf" },
 ];
 
 const state = {
@@ -47,6 +48,12 @@ async function apiPatch(path, payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (!res.ok) throw new Error(`API hata: ${res.status}`);
+  return res.json();
+}
+
+async function apiDelete(path) {
+  const res = await apiRequest(path, { method: "DELETE" });
   if (!res.ok) throw new Error(`API hata: ${res.status}`);
   return res.json();
 }
@@ -213,6 +220,7 @@ function renderSearchResults() {
                     <input data-card-note="${card.sku}" placeholder="Opsiyonel" />
                   </label>
                   <button type="submit">Stok Kartı Lokasyonunu Güncelle</button>
+                  <button type="button" data-card-delete="${card.sku}" style="background:#c0392b;margin-top:6px">Stok Kartını Sil</button>
                 </form>`
               : ""
           }
@@ -276,6 +284,21 @@ function bindCardEvents() {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       updateStockCardLocation(form.dataset.cardForm);
+    });
+  });
+  container.querySelectorAll("[data-card-delete]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const sku = btn.dataset.cardDelete;
+      if (!confirm(`SKU ${sku} stok kartını kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
+      try {
+        await apiDelete(`/stock-cards/${sku}`);
+        await refreshData();
+        state.expandedCardSku = null;
+        renderAll();
+      } catch (error) {
+        alert("Stok kartı silinemedi.");
+      }
     });
   });
 }
